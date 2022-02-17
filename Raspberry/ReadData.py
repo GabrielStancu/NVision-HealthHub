@@ -5,7 +5,6 @@ s = [0]
 while True:
     read_serial = ser.readline()
     line = ser.readline()
-    print(line)
-    # s[0] = str(float(line))
-    # print(s[0])
-    # print(read_serial)
+    parts = line.split(";")
+    print("Heartbeat: " + parts[0] + "\n")
+    print("Temperature: " + parts[1] + "\n")
