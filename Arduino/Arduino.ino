@@ -1,27 +1,42 @@
-#include <MAX30100.h>
 #include <Wire.h>
+
+#define REPORTING_PERIOD_MS 250
+
+uint32_t tsLastReport = 0;
 
 int heartbeatPin = A0;
 int temperaturePin = A1;
+int loPlusPin = 10;
+int loMinusPin = 11;
+int ecgPin = A2;
 
 void setup() {
+  Serial.begin(9600);
   pinMode(heartbeatPin, INPUT);
   pinMode(temperaturePin, INPUT);
-  Serial.begin(9600);
+  pinMode(loPlusPin, INPUT); 
+  pinMode(loMinusPin, INPUT); 
 }
 
 void loop() {
-  float heartbeat = measureHeartbeat();
-  float temperature = measureTemperature();
-  String heartbeatStr = String(heartbeat, 3);
-  String temperatureStr = String(temperature, 3);
-  String values = "";
-  char separator = ';';
-  values.concat(heartbeatStr);
-  values.concat(separator);
-  values.concat(temperatureStr);
-  Serial.println(values);
-  delay(1000);
+  if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+    float heartbeat = measureHeartbeat();
+    float temperature = measureTemperature();   
+    float ecg = measureEcg();
+    String heartbeatStr = String(heartbeat, 3);
+    String temperatureStr = String(temperature, 3);
+    String ecgStr = String(ecg, 3);
+    String values = "";
+    char separator = ';';
+    values.concat(heartbeatStr);
+    values.concat(separator);
+    values.concat(temperatureStr);
+    values.concat(separator);
+    values.concat(ecgStr);
+    Serial.println(values);
+
+    tsLastReport = millis();
+  }
 }
 
 float measureHeartbeat() {
@@ -42,11 +57,9 @@ float measureTemperature() {
   return celsius;
 }
 
-char* floatToCharArray(float val) {
-  static char sz[10] = {' '} ;
-  int val_int = (int) val;   
-  float val_float = abs((val - val_int) * 100);
-  int val_fra = (int)val_float;
-  sprintf (sz, "%d.%d", val_int, val_fra); 
-  return sz;
+float measureEcg() {
+  if((digitalRead(loPlusPin) == 1)||(digitalRead(loMinusPin) == 1)){
+    return 0;
+  }
+  return analogRead(ecgPin);
 }
