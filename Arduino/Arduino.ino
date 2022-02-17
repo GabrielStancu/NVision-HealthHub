@@ -1,32 +1,45 @@
+#include <MAX30100.h>
+#include <Wire.h>
+
+int heartbeatPin = A0;
+int temperaturePin = A1;
+
 void setup() {
-  setupHeartbeat();
+  pinMode(heartbeatPin, INPUT);
+  pinMode(temperaturePin, INPUT);
+  Serial.begin(9600);
 }
 
 void loop() {
-  // Heartbeat:
   float heartbeat = measureHeartbeat();
-  sendHeartbeat(heartbeat);
-  
+  float temperature = measureTemperature();
+  String heartbeatStr = String(heartbeat, 3);
+  String temperatureStr = String(temperature, 3);
+  String values = "";
+  char separator = ';';
+  values.concat(heartbeatStr);
+  values.concat(separator);
+  values.concat(temperatureStr);
+  Serial.println(values);
   delay(1000);
-}
-
-void setupHeartbeat() {
-  pinMode(A0, INPUT);
-  Serial.begin(9600);
 }
 
 float measureHeartbeat() {
   float pulse;
   int sum = 0;
   for (int i = 0; i < 20; i++)
-    sum += analogRead(A0);
+    sum += analogRead(heartbeatPin);
   pulse = sum / 20.00;
 
   return pulse;
 }
 
-void sendHeartbeat(float heartbeat) {
-  Serial.println(floatToCharArray(heartbeat));
+float measureTemperature() {
+  int tempVal =  analogRead(temperaturePin);
+  float measuredVal = (tempVal/1024.0)*5000; 
+  float celsius = measuredVal/10;
+
+  return celsius;
 }
 
 char* floatToCharArray(float val) {
