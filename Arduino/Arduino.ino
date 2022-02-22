@@ -1,7 +1,7 @@
 #include <Wire.h>
 
-#define DEB_INTERVAL_MS 1000
-#define REPORTING_PERIOD_MS 250
+#define DEB_INTERVAL_MS 5000
+#define REPORTING_PERIOD_MS 1
 #define HEARTBEAT A0
 #define TEMPERATURE A1
 #define LO_PLUS 10
@@ -18,6 +18,7 @@ int sendMode = 0;
 uint32_t tsLastReport = 0;
 int lastSwitchDetectedMIllis;
 const char separator = ';';
+unsigned long timestamp;
 
 void setup() { 
   pinMode(HEARTBEAT, INPUT);
@@ -49,9 +50,6 @@ void opBtnRise() {
 void sendData() {
   if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
     switch(sendMode) {
-      case 0:
-        sendNoOp();
-        break;
       case 1:
         sendHeartbeat();
         break;
@@ -71,18 +69,22 @@ void sendData() {
 
 float measureHeartbeat() {
   float pulse;
+  float correctiveFactor = 1.5;
   int sum = 0;
   for (int i = 0; i < 20; i++)
     sum += analogRead(HEARTBEAT);
-  pulse = sum / 20.00;
+  pulse = sum / 20.00 * correctiveFactor;
+  timestamp = millis();
 
   return pulse;
 }
 
 float measureTemperature() {
   int tempVal =  analogRead(TEMPERATURE);
-  float measuredVal = (tempVal/1024.0)*5000; 
+  float correctiveFactor = 1.33;
+  float measuredVal = (tempVal/1024.0)*5000*correctiveFactor; 
   float celsius = measuredVal/10;
+  timestamp = millis();
 
   return celsius;
 }
@@ -91,41 +93,60 @@ float measureEcg() {
   if((digitalRead(LO_PLUS) == HIGH)||(digitalRead(LO_MINUS) == HIGH)){
     return 0;
   }
-  return analogRead(ECG);
-}
 
-void sendNoOp() {
-  Serial.println("NA");
+  timestamp = millis();
+  return analogRead(ECG);
 }
 
 void sendHeartbeat() {
   float heartbeat = measureHeartbeat();
   String heartbeatStr = String(heartbeat, 3);
+  String timestampStr = String(timestamp);
   String sendValue = "";
-  sendValue.concat("HB");
-  sendValue.concat(separator);
-  sendValue.concat(heartbeatStr);
-  Serial.println(sendValue);
+  const float minValidValue = 0;
+  const float maxValidValue = 250;
+  if (heartbeat >= minValidValue && heartbeat <= maxValidValue) {
+    sendValue.concat("HB");
+    sendValue.concat(separator);
+    sendValue.concat(heartbeatStr);
+    sendValue.concat(separator);
+    sendValue.concat(timestampStr);
+    Serial.println(sendValue);
+  }
 }
 
 void sendTemperature() {
   float temperature = measureTemperature();
   String temperatureStr = String(temperature, 3);
+  String timestampStr = String(timestamp);
   String sendValue = "";
-  sendValue.concat("TMP");
-  sendValue.concat(separator);
-  sendValue.concat(temperatureStr);
-  Serial.println(sendValue);
+  const float minValidValue = 32;
+  const float maxValidValue = 42;
+  if (temperature >= minValidValue && temperature <= maxValidValue) {
+    sendValue.concat("TMP");
+    sendValue.concat(separator);
+    sendValue.concat(temperatureStr);
+    sendValue.concat(separator);
+    sendValue.concat(timestampStr);
+    Serial.println(sendValue);
+  }
 }
 
 void sendEcg() {
   float ecg = measureEcg();
   String ecgStr = String(ecg, 3);
+  String timestampStr = String(timestamp);
   String sendValue = "";
-  sendValue.concat("ECG");
-  sendValue.concat(separator);
-  sendValue.concat(ecgStr);
-  Serial.println(sendValue);
+  const int minValidValue = 30;
+  const int maxValidValue = 250;
+  if (ecg >= minValidValue && ecg <= maxValidValue) {
+    sendValue.concat("ECG");
+    sendValue.concat(separator);
+    sendValue.concat(ecgStr);
+    sendValue.concat(separator);
+    sendValue.concat(timestampStr);
+    Serial.println(sendValue);
+  }
 }
 
 void lightOpLeds() {
