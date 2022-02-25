@@ -8,10 +8,16 @@
 #define LO_MINUS 11
 #define ECG A2
 #define OP_BTN 2
+
+#define DONE_OP_LED 8
 #define NO_OP_LED 7
 #define HB_LED 6
 #define TEMP_LED 5
 #define ECG_LED 4
+
+#define REQ_HB 5
+#define REQ_TMP 5
+#define REQ_ECG 10
 
 bool pushingOpBtn = false;
 int sendMode = 0;
@@ -20,6 +26,12 @@ int lastSwitchDetectedMIllis;
 const char separator = ';';
 unsigned long timestamp;
 
+int hbCnt = 0;
+int tmpCnt = 0;
+int ecgCnt = 0;
+
+bool canGoNextState = false;
+
 void setup() { 
   pinMode(HEARTBEAT, INPUT);
   pinMode(TEMPERATURE, INPUT);
@@ -27,6 +39,7 @@ void setup() {
   pinMode(LO_MINUS, INPUT); 
   pinMode(OP_BTN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(OP_BTN), opBtnRise, RISING);
+  pinMode(DONE_OP_LED, OUTPUT);
   pinMode(NO_OP_LED, OUTPUT);
   pinMode(HB_LED, OUTPUT);
   pinMode(TEMP_LED, OUTPUT);
@@ -41,9 +54,14 @@ void loop() {
 }
 
 void opBtnRise() {
-  if (millis() - lastSwitchDetectedMIllis > DEB_INTERVAL_MS) {
+  if (sendMode == 0) {
+    sendMode = 1;
+    return;
+  }
+  if (millis() - lastSwitchDetectedMIllis > DEB_INTERVAL_MS && canGoNextState) {
     lastSwitchDetectedMIllis = millis();
     sendMode = (sendMode + 1) % 4;
+    resetState();
   }
 }
 
@@ -106,6 +124,7 @@ void sendHeartbeat() {
   const float minValidValue = 0;
   const float maxValidValue = 250;
   if (heartbeat >= minValidValue && heartbeat <= maxValidValue) {
+    countHeartbeat();
     sendValue.concat("HB");
     sendValue.concat(separator);
     sendValue.concat(heartbeatStr);
@@ -123,6 +142,7 @@ void sendTemperature() {
   const float minValidValue = 32;
   const float maxValidValue = 42;
   if (temperature >= minValidValue && temperature <= maxValidValue) {
+    countTemperature();
     sendValue.concat("TMP");
     sendValue.concat(separator);
     sendValue.concat(temperatureStr);
@@ -140,6 +160,7 @@ void sendEcg() {
   const int minValidValue = 30;
   const int maxValidValue = 250;
   if (ecg >= minValidValue && ecg <= maxValidValue) {
+    countEcg();
     sendValue.concat("ECG");
     sendValue.concat(separator);
     sendValue.concat(ecgStr);
@@ -147,6 +168,47 @@ void sendEcg() {
     sendValue.concat(timestampStr);
     Serial.println(sendValue);
   }
+}
+
+void countHeartbeat() {
+  hbCnt++;
+  if(hbCnt >= REQ_HB) {
+    digitalWrite(DONE_OP_LED, HIGH);
+    canGoNextState = true;
+  } 
+  else {
+    canGoNextState = false;
+  }
+}
+
+void countTemperature() {
+  tmpCnt++;
+  if(tmpCnt >= REQ_TMP) {
+    digitalWrite(DONE_OP_LED, HIGH);
+    canGoNextState = true;
+  }
+  else {
+    canGoNextState = false;
+  }
+}
+
+void countEcg() {
+  ecgCnt++;
+  if(ecgCnt >= REQ_ECG) {
+    digitalWrite(DONE_OP_LED, HIGH);
+    canGoNextState = true;
+  }
+  else {
+    canGoNextState = false;
+  }
+}
+
+void resetState() {
+  hbCnt = 0;
+  tmpCnt = 0;
+  ecgCnt = 0;
+  canGoNextState = false;
+  digitalWrite(DONE_OP_LED, LOW);
 }
 
 void lightOpLeds() {
