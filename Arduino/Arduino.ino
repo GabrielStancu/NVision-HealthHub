@@ -7,6 +7,7 @@
 #define LO_PLUS 10
 #define LO_MINUS 11
 #define ECG A2
+#define GSR A0
 #define OP_BTN 2
 
 #define DONE_OP_LED 8
@@ -14,10 +15,12 @@
 #define TEMP_LED 6
 #define ECG_LED 5
 #define MAX_LED 4
+#define GSR_LED 3
 
 #define REQ_HB 5
 #define REQ_TMP 5
 #define REQ_ECG 10
+#define REQ_GSR 5
 
 PulseOximeter pox;
 
@@ -30,6 +33,7 @@ const char separator = ';';
 int hbCnt = 0;
 int tmpCnt = 0;
 int ecgCnt = 0;
+int gsrCnt = 0;
 
 bool canGoNextState = false;
 unsigned long timestamp;
@@ -39,11 +43,13 @@ void setup() {
   pinMode(LO_PLUS, INPUT); 
   pinMode(LO_MINUS, INPUT); 
   pinMode(OP_BTN, INPUT_PULLUP);
+  //pin A0 ???
   attachInterrupt(digitalPinToInterrupt(OP_BTN), opBtnRise, RISING);
   pinMode(DONE_OP_LED, OUTPUT);
   pinMode(NO_OP_LED, OUTPUT);
   pinMode(TEMP_LED, OUTPUT);
   pinMode(ECG_LED, OUTPUT);
+  pinMode(GSR_LED, OUTPUT);
   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
   lastSwitchDetectedMIllis = millis();
   timestamp = millis();
@@ -79,6 +85,9 @@ void sendData() {
       case 3: 
         sendPulse();
         sendOxygen();
+        break;
+      case 4:
+        sendGSR();
         break;
       default: 
         break;
@@ -117,6 +126,14 @@ float measureSpO2() {
   float spO2 = pox.getSpO2();
   timestamp = millis();
   return spO2;
+}
+
+float measureGSR() {
+  float gsr = analogRead(0);
+  //Serial.println(a);
+  //Serial.write(a);
+  timestamp = millis();
+  return gsr;
 }
 
 void sendTemperature() {
@@ -191,6 +208,24 @@ void sendOxygen() {
   }
 }
 
+void sendGSR() {
+  float gsr = measureGSR();
+  String gsrStr = String(gsr, 3);
+  String timestampStr = String(timestamp);
+  String sendValue = "";
+  const int minValidValue = -1;
+  const int maxValidValue = 101;
+  if (gsr >= minValidValue && gsr <= maxValidValue) {
+    countEcg();
+    sendValue.concat("GSR");
+    sendValue.concat(separator);
+    sendValue.concat(gsrStr);
+    sendValue.concat(separator);
+    sendValue.concat(timestampStr);
+    Serial.println(sendValue);
+  }
+}
+
 void countTemperature() {
   tmpCnt++;
   if(tmpCnt >= REQ_TMP) {
@@ -213,10 +248,22 @@ void countEcg() {
   }
 }
 
+void countGsr() {
+  gsrCnt++;
+  if(gsrCnt >= REQ_GSR) {
+    digitalWrite(DONE_OP_LED, HIGH);
+    canGoNextState = true;
+  }
+  else {
+    canGoNextState = false;
+  }
+}
+
 void resetState() {
   hbCnt = 0;
   tmpCnt = 0;
   ecgCnt = 0;
+  gsrCnt = 0;
   canGoNextState = false;
   digitalWrite(DONE_OP_LED, LOW);
 }
@@ -226,6 +273,7 @@ void lightOpLeds() {
   digitalWrite(TEMP_LED, LOW);
   digitalWrite(ECG_LED, LOW);
   digitalWrite(MAX_LED, LOW);
+  digitalWrite(GSR_LED, LOW);
 
   switch(sendMode) {
     case 0:
@@ -239,6 +287,9 @@ void lightOpLeds() {
       break;
     case 3: 
       digitalWrite(MAX_LED, HIGH);
+      break;
+    case 4: 
+      digitalWrite(GSR_LED, HIGH);
       break;
     default: 
       sendMode = 0;
