@@ -17,11 +17,6 @@
 #define MAX_LED 4
 #define GSR_LED 3
 
-#define REQ_HB 5
-#define REQ_TMP 5
-#define REQ_ECG 10
-#define REQ_GSR 5
-
 PulseOximeter pox;
 
 bool pushingOpBtn = false;
@@ -30,10 +25,34 @@ uint32_t tsLastReport = 0;
 int lastSwitchDetectedMIllis;
 const char separator = ';';
 
-int hbCnt = 0;
 int tmpCnt = 0;
 int ecgCnt = 0;
+int hbCnt = 0;
+int oxyCnt = 0;
 int gsrCnt = 0;
+
+const float minValidTemp = 32;
+const float maxValidTemp = 42;
+const float minValidEcg = 30;
+const float maxValidEcg = 250;
+const float minValidPulse = 30;
+const float maxValidPulse = 200;
+const float minValidOxygen = -1;
+const float maxValidOxygen = 101;
+const float minValidGsr = -1;
+const float maxValidGsr = 101;
+
+const char tempType[4] = "TMP";
+const char ecgType[4] = "ECG";
+const char pulseType[4] = "BPM";
+const char oxygenType[4] = "OXY";
+const char gsrType[4] = "GSR";
+
+const int reqTmp = 5;
+const int reqEcg = 10;
+const int reqHb = 5;
+const int reqOxygen = 5;
+const int reqGsr = 5;
 
 bool canGoNextState = false;
 unsigned long timestamp;
@@ -77,17 +96,17 @@ void sendData() {
   if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
     switch(sendMode) {
       case 1:
-        sendTemperature();
+        sendValue(minValidTemp, maxValidTemp, tempType, measureTemperature, &tmpCnt, reqTmp);
         break;
       case 2:
-        sendEcg();
+        sendValue(minValidEcg, maxValidEcg, ecgType, measureEcg, &ecgCnt, reqEcg);
         break;
       case 3: 
-        sendPulse();
-        sendOxygen();
+        sendValue(minValidPulse, maxValidPulse, pulseType, measurePulse, &hbCnt, reqHb);
+        sendValue(minValidOxygen, maxValidOxygen, oxygenType, measureSpO2, &oxyCnt, reqOxygen);
         break;
       case 4:
-        sendGSR();
+        sendValue(minValidGsr, maxValidGsr, gsrType, measureGsr, &gsrCnt, reqGsr);
         break;
       default: 
         break;
@@ -128,7 +147,7 @@ float measureSpO2() {
   return spO2;
 }
 
-float measureGSR() {
+float measureGsr() {
   float gsr = analogRead(0);
   //Serial.println(a);
   //Serial.write(a);
@@ -136,123 +155,29 @@ float measureGSR() {
   return gsr;
 }
 
-void sendTemperature() {
-  float temperature = measureTemperature();
-  String temperatureStr = String(temperature, 3);
+void sendValue(float minValue, float maxValue, const char type[], float (*measureValueFunc)(), int *measurementCnt, int reqCnt) {
+  float value = measureValueFunc();
+  String valueStr = String(value, 3);
   String timestampStr = String(timestamp);
   String sendValue = "";
-  const float minValidValue = 32;
-  const float maxValidValue = 42;
-  if (temperature >= minValidValue && temperature <= maxValidValue) {
-    countTemperature();
-    sendValue.concat("TMP");
+
+  if (value >= minValue && value <= maxValue) {
+    countMeasurement(measurementCnt, reqCnt);
+    sendValue.concat(type);
     sendValue.concat(separator);
-    sendValue.concat(temperatureStr);
+    sendValue.concat(valueStr);
     sendValue.concat(separator);
     sendValue.concat(timestampStr);
     Serial.println(sendValue);
   }
 }
 
-void sendEcg() {
-  float ecg = measureEcg();
-  String ecgStr = String(ecg, 3);
-  String timestampStr = String(timestamp);
-  String sendValue = "";
-  const int minValidValue = 30;
-  const int maxValidValue = 250;
-  if (ecg >= minValidValue && ecg <= maxValidValue) {
-    countEcg();
-    sendValue.concat("ECG");
-    sendValue.concat(separator);
-    sendValue.concat(ecgStr);
-    sendValue.concat(separator);
-    sendValue.concat(timestampStr);
-    Serial.println(sendValue);
-  }
-}
-
-void sendPulse() {
-  float pulse = measurePulse();
-  String pulseStr = String(pulse, 3);
-  String timestampStr = String(timestamp);
-  String sendValue = "";
-  const int minValidValue = 30;
-  const int maxValidValue = 200;
-  if (pulse >= minValidValue && pulse <= maxValidValue) {
-    countEcg();
-    sendValue.concat("BPM");
-    sendValue.concat(separator);
-    sendValue.concat(pulseStr);
-    sendValue.concat(separator);
-    sendValue.concat(timestampStr);
-    Serial.println(sendValue);
-  }
-}
-
-void sendOxygen() {
-  float oxygen = measureSpO2();
-  String oxygenStr = String(oxygen, 3);
-  String timestampStr = String(timestamp);
-  String sendValue = "";
-  const int minValidValue = -1;
-  const int maxValidValue = 101;
-  if (oxygen >= minValidValue && oxygen <= maxValidValue) {
-    countEcg();
-    sendValue.concat("OXY");
-    sendValue.concat(separator);
-    sendValue.concat(oxygenStr);
-    sendValue.concat(separator);
-    sendValue.concat(timestampStr);
-    Serial.println(sendValue);
-  }
-}
-
-void sendGSR() {
-  float gsr = measureGSR();
-  String gsrStr = String(gsr, 3);
-  String timestampStr = String(timestamp);
-  String sendValue = "";
-  const int minValidValue = -1;
-  const int maxValidValue = 101;
-  if (gsr >= minValidValue && gsr <= maxValidValue) {
-    countEcg();
-    sendValue.concat("GSR");
-    sendValue.concat(separator);
-    sendValue.concat(gsrStr);
-    sendValue.concat(separator);
-    sendValue.concat(timestampStr);
-    Serial.println(sendValue);
-  }
-}
-
-void countTemperature() {
-  tmpCnt++;
-  if(tmpCnt >= REQ_TMP) {
+void countMeasurement(int *measurementCnt, int reqCnt) {
+  (*measurementCnt)++;
+  if(*measurementCnt >= reqCnt) {
     digitalWrite(DONE_OP_LED, HIGH);
     canGoNextState = true;
-  }
-  else {
-    canGoNextState = false;
-  }
-}
-
-void countEcg() {
-  ecgCnt++;
-  if(ecgCnt >= REQ_ECG) {
-    digitalWrite(DONE_OP_LED, HIGH);
-    canGoNextState = true;
-  }
-  else {
-    canGoNextState = false;
-  }
-}
-
-void countGsr() {
-  gsrCnt++;
-  if(gsrCnt >= REQ_GSR) {
-    digitalWrite(DONE_OP_LED, HIGH);
-    canGoNextState = true;
+    *measurementCnt = 0;
   }
   else {
     canGoNextState = false;
