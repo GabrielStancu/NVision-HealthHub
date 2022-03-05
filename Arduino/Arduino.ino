@@ -5,9 +5,8 @@
 PulseOximeter pox;
 
 bool pushingOpBtn = false;
-int sendMode = 0;
+int sendMode = 3;
 uint32_t tsLastReport = 0;
-int lastSwitchDetectedMIllis;
 const char separator = ';';
 
 int tmpCnt = 0;
@@ -26,13 +25,14 @@ void setup() {
   pinMode(OP_BTN, INPUT_PULLUP);
   //pin A0 ???
   attachInterrupt(digitalPinToInterrupt(OP_BTN), opBtnRise, RISING);
-  pinMode(DONE_OP_LED, OUTPUT);
   pinMode(NO_OP_LED, OUTPUT);
   pinMode(TEMP_LED, OUTPUT);
   pinMode(ECG_LED, OUTPUT);
+  pinMode(BPM_LED, OUTPUT);
+  pinMode(OXY_LED, OUTPUT);
   pinMode(GSR_LED, OUTPUT);
+  pox.begin();
   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
-  lastSwitchDetectedMIllis = millis();
   timestamp = millis();
   Serial.begin(9600);
 }
@@ -45,12 +45,6 @@ void loop() {
 void opBtnRise() {
   if (sendMode == 0) {
     sendMode = 1;
-    return;
-  }
-  if (millis() - lastSwitchDetectedMIllis > DEB_INTERVAL_MS && canGoNextState) {
-    lastSwitchDetectedMIllis = millis();
-    sendMode = (sendMode + 1) % 4;
-    resetState();
   }
 }
 
@@ -65,9 +59,11 @@ void sendData() {
         break;
       case 3: 
         sendValue(minValidPulse, maxValidPulse, pulseType, measurePulse, &hbCnt, reqHb);
-        sendValue(minValidOxygen, maxValidOxygen, oxygenType, measureSpO2, &oxyCnt, reqOxygen);
         break;
       case 4:
+        sendValue(minValidOxygen, maxValidOxygen, oxygenType, measureSpO2, &oxyCnt, reqOxygen);
+        break;
+      case 5:
         sendValue(minValidGsr, maxValidGsr, gsrType, measureGsr, &gsrCnt, reqGsr);
         break;
       default: 
@@ -75,11 +71,22 @@ void sendData() {
     }
 
     tsLastReport = millis();
+
+    if (canGoNextState) {
+      sendMode = (sendMode + 1) % 6;
+      resetState();
+    }
   }
 }
 
 float measureTemperature() {
-  int tempVal =  analogRead(TEMPERATURE);
+  float tempVal =  0;
+  
+  for(int i = 0; i < 100; i++) {
+    tempVal += analogRead(TEMPERATURE);
+  }
+  tempVal /= 100;
+  
   float correctiveFactor = 1.33;
   float measuredVal = (tempVal/1024.0)*5000*correctiveFactor; 
   float celsius = measuredVal/10;
@@ -98,12 +105,14 @@ float measureEcg() {
 }
 
 float measurePulse() {
+  pox.update();
   float pulse = pox.getHeartRate();
   timestamp = millis();
   return pulse;
 }
 
 float measureSpO2() {
+  pox.update();
   float spO2 = pox.getSpO2();
   timestamp = millis();
   return spO2;
@@ -137,9 +146,7 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
 void countMeasurement(int *measurementCnt, int reqCnt) {
   (*measurementCnt)++;
   if(*measurementCnt >= reqCnt) {
-    digitalWrite(DONE_OP_LED, HIGH);
     canGoNextState = true;
-    *measurementCnt = 0;
   }
   else {
     canGoNextState = false;
@@ -152,14 +159,14 @@ void resetState() {
   ecgCnt = 0;
   gsrCnt = 0;
   canGoNextState = false;
-  digitalWrite(DONE_OP_LED, LOW);
 }
 
 void lightOpLeds() {
   digitalWrite(NO_OP_LED, LOW);
   digitalWrite(TEMP_LED, LOW);
   digitalWrite(ECG_LED, LOW);
-  digitalWrite(MAX_LED, LOW);
+  digitalWrite(BPM_LED, LOW);
+  digitalWrite(OXY_LED, LOW);
   digitalWrite(GSR_LED, LOW);
 
   switch(sendMode) {
@@ -173,9 +180,12 @@ void lightOpLeds() {
       digitalWrite(ECG_LED, HIGH);
       break;
     case 3: 
-      digitalWrite(MAX_LED, HIGH);
+      digitalWrite(BPM_LED, HIGH);
       break;
     case 4: 
+      digitalWrite(OXY_LED, HIGH);
+      break;
+    case 5: 
       digitalWrite(GSR_LED, HIGH);
       break;
     default: 
