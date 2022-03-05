@@ -1,4 +1,4 @@
-#define REPORTING_PERIOD_MS 1
+#define REPORTING_PERIOD_MS 10
 #define TEMPERATURE A1
 #define LO_PLUS 10
 #define LO_MINUS 11
@@ -23,6 +23,8 @@ const float minValidOxygen = 1;
 const float maxValidOxygen = 101;
 const float minValidGsr = 1;
 const float maxValidGsr = 1022;
+
+const char separator = ';';
 
 const char tempType[4] = "TMP";
 const char ecgType[4] = "ECG";

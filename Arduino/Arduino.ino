@@ -7,7 +7,6 @@ PulseOximeter pox;
 bool pushingOpBtn = false;
 int sendMode = 0;
 uint32_t tsLastReport = 0;
-const char separator = ';';
 
 int tmpCnt = 0;
 int ecgCnt = 0;
@@ -19,6 +18,7 @@ bool canGoNextState = false;
 unsigned long timestamp;
 
 void setup() { 
+  Serial.begin(9600);
   pinMode(TEMPERATURE, INPUT);
   pinMode(LO_PLUS, INPUT); 
   pinMode(LO_MINUS, INPUT); 
@@ -34,7 +34,6 @@ void setup() {
   pox.begin();
   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
   timestamp = millis();
-  Serial.begin(9600);
 }
 
 void loop() {
