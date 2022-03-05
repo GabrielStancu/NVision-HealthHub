@@ -22,7 +22,7 @@ const float maxValidPulse = 200;
 const float minValidOxygen = 1;
 const float maxValidOxygen = 101;
 const float minValidGsr = 1;
-const float maxValidGsr = 101;
+const float maxValidGsr = 1022;
 
 const char tempType[4] = "TMP";
 const char ecgType[4] = "ECG";

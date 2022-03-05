@@ -5,7 +5,7 @@
 PulseOximeter pox;
 
 bool pushingOpBtn = false;
-int sendMode = 3;
+int sendMode = 0;
 uint32_t tsLastReport = 0;
 const char separator = ';';
 
@@ -23,7 +23,7 @@ void setup() {
   pinMode(LO_PLUS, INPUT); 
   pinMode(LO_MINUS, INPUT); 
   pinMode(OP_BTN, INPUT_PULLUP);
-  //pin A0 ???
+  pinMode(GSR, INPUT);
   attachInterrupt(digitalPinToInterrupt(OP_BTN), opBtnRise, RISING);
   pinMode(NO_OP_LED, OUTPUT);
   pinMode(TEMP_LED, OUTPUT);
@@ -120,8 +120,7 @@ float measureSpO2() {
 
 float measureGsr() {
   float gsr = analogRead(0);
-  //Serial.println(a);
-  //Serial.write(a);
+  //Serial.write(gsr);
   timestamp = millis();
   return gsr;
 }
