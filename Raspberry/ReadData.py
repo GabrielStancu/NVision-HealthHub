@@ -41,7 +41,7 @@ def sendNotSentData():
     channel.queue_declare(queue='healthHubQueue', durable=True) 
     for unsentRecord in unsentData: 
         try:
-            serializedMessage = json.dumps({ 'data': unsentRecord, 'deviceSerial': serialNumber }, indent=4, default = myconverter)
+            serializedMessage = json.dumps({ 'type': unsentRecord['type'], 'value': unsentRecord['value'], 'timestamp': unsentRecord['timestamp'], 'deviceSerial': serialNumber}, default = myconverter)
             channel.basic_publish(exchange='',
                         routing_key='healthHubQueue',
                         body=serializedMessage)
@@ -72,3 +72,5 @@ while True:
     storeData(type, value, timestamp)
     checkAnomalies()
     sendNotSentData()
+    # measurementsCollection.remove()
+    # print(measurementsCollection.count())
