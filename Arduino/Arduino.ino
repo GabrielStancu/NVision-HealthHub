@@ -54,7 +54,7 @@ void sendData() {
         sendValue(minValidTemp, maxValidTemp, tempType, measureTemperature, &tmpCnt, reqTmp);
         break;
       case 2:
-        sendValue(minValidEcg, maxValidEcg, ecgType, measureEcg, &ecgCnt, reqEcg);
+        sendValue(minValidGsr, maxValidGsr, gsrType, measureGsr, &gsrCnt, reqGsr);
         break;
       case 3: 
         sendValue(minValidPulse, maxValidPulse, pulseType, measurePulse, &hbCnt, reqHb);
@@ -63,7 +63,7 @@ void sendData() {
         sendValue(minValidOxygen, maxValidOxygen, oxygenType, measureSpO2, &oxyCnt, reqOxygen);
         break;
       case 5:
-        sendValue(minValidGsr, maxValidGsr, gsrType, measureGsr, &gsrCnt, reqGsr);
+        sendValue(minValidEcg, maxValidEcg, ecgType, measureEcg, &ecgCnt, reqEcg);
         break;
       default: 
         break;
@@ -86,8 +86,7 @@ float measureTemperature() {
   }
   tempVal /= 100;
   
-  float correctiveFactor = 1.33;
-  float measuredVal = (tempVal/1024.0)*5000*correctiveFactor; 
+  float measuredVal = (tempVal/1024.0)*5000; 
   float celsius = measuredVal/10;
   timestamp = millis();
 
@@ -118,8 +117,7 @@ float measureSpO2() {
 }
 
 float measureGsr() {
-  float gsr = analogRead(0);
-  //Serial.write(gsr);
+  int gsr = analogRead(0);
   timestamp = millis();
   return gsr;
 }
