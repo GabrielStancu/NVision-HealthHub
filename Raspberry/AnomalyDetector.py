@@ -3,6 +3,8 @@ import scipy.signal as signal
 from Measurement import Measurement
 from SensorType import SensorType
 import urllib3
+from sklearn.cluster import DBSCAN
+import numpy as np
 
 from SubjectData import SubjectData
 
@@ -14,11 +16,14 @@ class AnomalyDetector:
 
     def detectAnomaly(self):
         subjectData = self.__getSubjectData()
-        measurements = self.__getMeasurements(subjectData.id)
-        (medTemp, medEcg, medPulse, medOxygen, medGsr) = self.__medianFilterMeasurements(measurements)
+        (temp, ecg, pulse, oxygen, gsr) = self.__getMeasurements(subjectData.id)
+        tempAnom = self.__dbscanAnomalies(temp, 1)
+        ecgAnom = self.__dbscanAnomalies(ecg, 10) #experimentally find values for these
+        pulseAnom = self.__dbscanAnomalies(pulse, 5) #experimentally find values for these
+        oxygenAnom = self.__dbscanAnomalies(oxygen, 10) #experimentally find values for these
+        gsrAnom = self.__dbscanAnomalies(gsr, 3) #experimentally find values for these
         
-        for mediatedMeasurement in medTemp:
-            print(mediatedMeasurement)
+        return (tempAnom, ecgAnom, pulseAnom, oxygenAnom, gsrAnom)
 
     def __getSubjectData(self):
         query = { 'serialNumber': self.serialNumber }
@@ -34,7 +39,7 @@ class AnomalyDetector:
         measurements = []
         for measurementElem in measurementsList:
             measurements.append(Measurement(measurementElem))
-        return measurements
+        return self.__splitMeasurements(measurements)
 
     def __medianFilter(self, measurements):
         mediatedMeasurements = signal.medfilt(measurements, kernel_size=9)
@@ -45,22 +50,23 @@ class AnomalyDetector:
         for measurement in measurements:
             sensorType = SensorType(measurement.sensorType)
             if (sensorType == SensorType.TEMPERATURE):
-                temp.append(measurement.value)
+                temp.append(measurement)
             elif (sensorType == SensorType.ECG):
-                ecg.append(measurement.value)
+                ecg.append(measurement)
             elif (sensorType == SensorType.PULSE):
-                pulse.append(measurement.value)
+                pulse.append(measurement)
             elif (sensorType == SensorType.OXYGEN):
-                oxygen.append(measurement.value)
+                oxygen.append(measurement)
             elif (sensorType == SensorType.GSR):
-                gsr.append(measurement.value)
+                gsr.append(measurement)
         return (temp, ecg, pulse, oxygen, gsr)
 
-    def __medianFilterMeasurements(self, measurements):
-        (temp, ecg, pulse, oxygen, gsr) = self.__splitMeasurements(measurements)
-        mediatedTemp = self.__medianFilter(temp)
-        mediatedEcg = self.__medianFilter(ecg)
-        mediatedPulse = self.__medianFilter(pulse)
-        mediatedOxygen = self.__medianFilter(oxygen)
-        mediatedGsr = self.__medianFilter(gsr)
-        return (mediatedTemp, mediatedEcg, mediatedPulse, mediatedOxygen, mediatedGsr)
+    def __dbscanAnomalies(self, measurements, epsilon):
+        clustering1 = DBSCAN(eps=epsilon, min_samples=6).fit(np.array([m.value for m in measurements]).reshape(-1,1))
+        labels = clustering1.labels_
+        outlier_pos = np.where(labels == -1)[0]
+        anomalies = []
+        for pos in outlier_pos:
+            anomalies.append(np.array(measurements)[pos])
+            
+        return anomalies
