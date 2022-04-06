@@ -14,9 +14,9 @@ class AnomalyDetector:
         self.api = "https://localhost:5001/api/device/"
         urllib3.disable_warnings() #todo: remove this and make HTTPS requests
 
-    def detectAnomaly(self):
-        subjectData = self.__getSubjectData()
-        (temp, ecg, pulse, oxygen, gsr) = self.__getMeasurements(subjectData.id)
+    def detectAnomaly(self, measurements):
+        subjectData = self.__getSubjectData() #use it somehow
+        (temp, ecg, pulse, oxygen, gsr) = self.__splitMeasurements(measurements)
         tempAnom = self.__dbscanAnomalies(temp, 1)
         ecgAnom = self.__dbscanAnomalies(ecg, 10) #experimentally find values for these
         pulseAnom = self.__dbscanAnomalies(pulse, 5) #experimentally find values for these
@@ -31,15 +31,6 @@ class AnomalyDetector:
         jsonResponse = response.json()
         subjectData = SubjectData(jsonResponse)
         return subjectData
-
-    def __getMeasurements(self, id):
-        subjectQuery = { 'subjectId': id } #this will be removed
-        measurementsResponse = requests.get(self.api + "measurements/", params=subjectQuery, verify=False) #this will be removed
-        measurementsList = measurementsResponse.json() #this data is obtained locally outside and passed as parameter
-        measurements = []
-        for measurementElem in measurementsList:
-            measurements.append(Measurement(measurementElem))
-        return self.__splitMeasurements(measurements)
 
     def __medianFilter(self, measurements):
         mediatedMeasurements = signal.medfilt(measurements, kernel_size=9)
