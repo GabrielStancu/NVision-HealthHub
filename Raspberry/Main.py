@@ -13,6 +13,9 @@ alerter = AnomalyAlerter()
 
 while True:
     measurement = reader.read()
+    if (measurement == None):
+        continue
+
     repository.storeData(measurement)
     measurements = repository.getData()
     anomalies = detector.detectAnomaly(measurements)

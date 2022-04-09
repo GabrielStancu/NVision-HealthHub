@@ -16,6 +16,10 @@ class DataReader:
 
         parts = line.split(";")
         type = parts[0]
+
+        if (type == "NOP"):
+            return None
+
         value = float(parts[1])
         measurementMillis = float(parts[2])
         timestamp = self.__getMeasurementTime(measurementMillis)
