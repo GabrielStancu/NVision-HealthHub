@@ -24,7 +24,7 @@ void setup() {
   pinMode(LO_MINUS, INPUT); 
   pinMode(OP_BTN, INPUT_PULLUP);
   pinMode(GSR, INPUT);
-  attachInterrupt(digitalPinToInterrupt(OP_BTN), opBtnRise, RISING);
+  attachInterrupt(digitalPinToInterrupt(OP_BTN), opBtnChange, CHANGE);
   pinMode(NO_OP_LED, OUTPUT);
   pinMode(TEMP_LED, OUTPUT);
   pinMode(ECG_LED, OUTPUT);
@@ -41,15 +41,25 @@ void loop() {
   sendData();
 }
 
-void opBtnRise() {
-  if (sendMode == 0) {
-    sendMode = 1;
+void opBtnChange() {
+  if(digitalRead(OP_BTN) == HIGH){
+    pushingOpBtn = true;
+    if (sendMode == 0) {
+      sendMode = 1;
+      pushingOpBtn = false;
+    }  
+  } else {
+    pushingOpBtn = false;
   }
 }
 
 void sendData() {
+  pox.update();
   if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
     switch(sendMode) {
+      case 0:
+        sendNoOp();
+        break;
       case 1:
         sendValue(minValidTemp, maxValidTemp, tempType, measureTemperature, &tmpCnt, reqTmp);
         break;
@@ -73,6 +83,7 @@ void sendData() {
 
     if (canGoNextState) {
       sendMode = (sendMode + 1) % 6;
+      pushingOpBtn = false;
       resetState();
     }
   }
@@ -86,7 +97,7 @@ float measureTemperature() {
   }
   tempVal /= 100;
   
-  float measuredVal = (tempVal/1024.0)*5000; 
+  float measuredVal = (tempVal/1024.0)*4850; 
   float celsius = measuredVal/10;
   timestamp = millis();
 
@@ -103,14 +114,12 @@ float measureEcg() {
 }
 
 float measurePulse() {
-  pox.update();
   float pulse = pox.getHeartRate();
   timestamp = millis();
   return pulse;
 }
 
 float measureSpO2() {
-  pox.update();
   float spO2 = pox.getSpO2();
   timestamp = millis();
   return spO2;
@@ -128,7 +137,7 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
   String timestampStr = String(timestamp);
   String sendValue = "";
 
-  if (value >= minValue && value <= maxValue) {
+  if (value >= minValue && value <= maxValue && pushingOpBtn) {
     countMeasurement(measurementCnt, reqCnt);
     sendValue.concat(type);
     sendValue.concat(separator);
@@ -137,6 +146,10 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
     sendValue.concat(timestampStr);
     Serial.println(sendValue);
   }
+}
+
+void sendNoOp() {
+  Serial.println("NOP");
 }
 
 void countMeasurement(int *measurementCnt, int reqCnt) {
