@@ -1,26 +1,24 @@
 from Measurement import Measurement
-import pymongo
+from tinydb import TinyDB, Query
 
 class DataRepository:
-    dbClient = pymongo.MongoClient("mongodb://localhost:27017/")
-    db = dbClient["healthDb"]
-    measurementsCollection = db["measurements"]
-    unsentQuery = { "sent": False }
-    updateQuery = { "$set": { "sent": True } }
+    db = TinyDB("nvision.json").table('measurements')
+    Unsent = Query()
 
     def storeData(self, measurement):
-        self.measurementsCollection.insert_one(measurement)
+        self.db.insert({'type':measurement.type, 'value': measurement.value, 'timestamp': str(measurement.timestamp)})
 
     def getData(self):
-        collection = self.measurementsCollection
-        return self.__collectionToMeasurements(collection)     
+        records = self.db.all()   
+        return self.__recordsToMeasurements(records)
 
     def getUnsentData(self):
-        collection = self.getData().find(self.unsentQuery)
-        return self.__collectionToMeasurements(collection)
+        records = self.db.get(self.Unsent.unsent == True)
+        return self.__recordsToMeasurements(records)
 
-    def __collectionToMeasurements(collection):
+    def __recordsToMeasurements(self, records):
         measurements = []
-        for elem in collection:
-            measurements.append(Measurement(elem.type, elem.value, elem.timestamp))
+        if (records):
+            for elem in records:
+                measurements.append(Measurement(elem['type'], elem['value'], elem['timestamp']))
         return measurements

@@ -1,7 +1,5 @@
 import requests
 import scipy.signal as signal
-from Measurement import Measurement
-from SensorType import SensorType
 import urllib3
 from sklearn.cluster import DBSCAN
 import numpy as np
@@ -9,13 +7,15 @@ import numpy as np
 from SubjectData import SubjectData
 
 class AnomalyDetector:
+    __subjectData = None
     def __init__(self, serialNumber):
         self.serialNumber = serialNumber
-        self.api = "https://localhost:5001/api/device/"
-        urllib3.disable_warnings() #todo: remove this and make HTTPS requests
+        # self.api = "https://localhost:5001/api/device/"
+        # urllib3.disable_warnings()
 
     def detectAnomaly(self, measurements):
-        subjectData = self.__getSubjectData() #use it somehow
+        # if (self.__subjectData == None):
+        #     self.__subjectData = self.__getSubjectData() #use it somehow
         (temp, ecg, pulse, oxygen, gsr) = self.__splitMeasurements(measurements)
         tempAnom = self.__dbscanAnomalies(temp, 1)
         ecgAnom = self.__dbscanAnomalies(ecg, 10) #experimentally find values for these
@@ -39,20 +39,23 @@ class AnomalyDetector:
     def __splitMeasurements(self, measurements):
         temp, ecg, pulse, oxygen, gsr = [], [], [], [], []
         for measurement in measurements:
-            sensorType = SensorType(measurement.sensorType)
-            if (sensorType == SensorType.TEMPERATURE):
+            sensorType = measurement.type
+            if (sensorType == 'TMP'):
                 temp.append(measurement)
-            elif (sensorType == SensorType.ECG):
+            elif (sensorType == 'ECG'):
                 ecg.append(measurement)
-            elif (sensorType == SensorType.PULSE):
+            elif (sensorType == 'BPM'):
                 pulse.append(measurement)
-            elif (sensorType == SensorType.OXYGEN):
+            elif (sensorType == 'OXY'):
                 oxygen.append(measurement)
-            elif (sensorType == SensorType.GSR):
+            elif (sensorType == 'GSR'):
                 gsr.append(measurement)
         return (temp, ecg, pulse, oxygen, gsr)
 
     def __dbscanAnomalies(self, measurements, epsilon):
+        if (len(measurements) < 10):
+            return []
+
         clustering1 = DBSCAN(eps=epsilon, min_samples=6).fit(np.array([m.value for m in measurements]).reshape(-1,1))
         labels = clustering1.labels_
         outlier_pos = np.where(labels == -1)[0]
