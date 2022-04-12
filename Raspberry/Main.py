@@ -21,4 +21,5 @@ while True:
     anomalies = detector.detectAnomaly(measurements)
     alerter.alertAnomaly(anomalies)
     unsentMeasurements = repository.getUnsentData()
-    sender.sendNotSentData(unsentMeasurements)
+    sender.sendNotSentData(unsentMeasurements, serialNumber)
+    repository.updateSentData(unsentMeasurements)
