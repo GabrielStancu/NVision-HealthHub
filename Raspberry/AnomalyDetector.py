@@ -1,40 +1,23 @@
-import requests
-import scipy.signal as signal
-import urllib3
-from sklearn.cluster import DBSCAN
+import pandas as pd
 import numpy as np
-
-from SubjectData import SubjectData
+from scipy.cluster.vq import kmeans
+from scipy.cluster.vq import vq
 
 class AnomalyDetector:
-    __subjectData = None
-    def __init__(self, serialNumber):
-        self.serialNumber = serialNumber
-        # self.api = "https://localhost:5001/api/device/"
-        # urllib3.disable_warnings()
-
-    def detectAnomaly(self, measurements):
-        # if (self.__subjectData == None):
-        #     self.__subjectData = self.__getSubjectData() #use it somehow
+    __clustersCnt = 5
+    def detectAnomalies(self, measurements):
         (temp, ecg, pulse, oxygen, gsr) = self.__splitMeasurements(measurements)
-        tempAnom = self.__dbscanAnomalies(temp, 1)
-        ecgAnom = self.__dbscanAnomalies(ecg, 10) #experimentally find values for these
-        pulseAnom = self.__dbscanAnomalies(pulse, 5) #experimentally find values for these
-        oxygenAnom = self.__dbscanAnomalies(oxygen, 10) #experimentally find values for these
-        gsrAnom = self.__dbscanAnomalies(gsr, 3) #experimentally find values for these
+
+        tempAnomaly = self.__detectAnomalies(temp)
+        if (tempAnomaly == True):
+            return temp[-1]
+        #self.__detectAnomalies(pulse)
+        #self.__detectAnomalies(oxygen)
+        #self.__detectAnomalies(gsr)
+        #self.__detectAnomalies(ecg)
+
+        return None
         
-        return (tempAnom, ecgAnom, pulseAnom, oxygenAnom, gsrAnom)
-
-    def __getSubjectData(self):
-        query = { 'serialNumber': self.serialNumber }
-        response = requests.get(self.api, params=query, verify=False)
-        jsonResponse = response.json()
-        subjectData = SubjectData(jsonResponse)
-        return subjectData
-
-    def __medianFilter(self, measurements):
-        mediatedMeasurements = signal.medfilt(measurements, kernel_size=9)
-        return mediatedMeasurements
 
     def __splitMeasurements(self, measurements):
         temp, ecg, pulse, oxygen, gsr = [], [], [], [], []
@@ -52,15 +35,61 @@ class AnomalyDetector:
                 gsr.append(measurement)
         return (temp, ecg, pulse, oxygen, gsr)
 
-    def __dbscanAnomalies(self, measurements, epsilon):
+    def __detectAnomalies(self, measurements):
         if (len(measurements) < 10):
-            return []
+            return
 
-        clustering1 = DBSCAN(eps=epsilon, min_samples=6).fit(np.array([m.value for m in measurements]).reshape(-1,1))
-        labels = clustering1.labels_
-        outlier_pos = np.where(labels == -1)[0]
-        anomalies = []
-        for pos in outlier_pos:
-            anomalies.append(np.array(measurements)[pos])
+        # Create pandas DataFrame
+        measurements_df = pd.DataFrame(
+            {
+                'Timestamp': [m.timestamp for m in measurements],
+                'Value': [m.value for m in measurements]
+            })
+
+        # Convert the measurement values to a numpy array
+        values_raw = measurements_df['Value'].values
+
+        # For compatibility with the SciPy implementation
+        values_raw = values_raw.reshape(-1, 1)
+        values_raw = values_raw.astype('float64')
+        
+        # Specify the data and the number of clusters to kmeans()
+        centroids, avg_distance = kmeans(values_raw, self.__clustersCnt)
+
+        # Get the groups (clusters) and distances
+        groups, cdist = vq(values_raw, centroids)
+
+        # Check if any cluster represents an anomaly cluster
+        (histo, bins) = np.histogram(groups, bins=np.arange(self.__clustersCnt + 1))
+
+        # Return any anomaly
+        return np.any(histo[:] == 1)
+
+
             
-        return anomalies
+        
+
+
+# # Convert the salary values to a numpy array
+# salary_raw = salary_df['Salary (in USD)'].values
+
+# # For compatibility with the SciPy implementation
+# salary_raw = salary_raw.reshape(-1, 1)
+# salary_raw = salary_raw.astype('float64')
+
+# # Import kmeans from SciPy
+# from scipy.cluster.vq import kmeans
+# from scipy.cluster.vq import vq
+    
+# # Specify the data and the number of clusters to kmeans()
+# centroids, avg_distance = kmeans(salary_raw, 4)
+
+# # Get the groups (clusters) and distances
+# groups, cdist = vq(salary_raw, centroids)
+
+# # %%
+# plt.scatter(salary_raw, np.arange(0,100), c=groups)
+# plt.xlabel('Salaries in (USD)')
+# plt.ylabel('Indices')
+# plt.show()
+# # %%
