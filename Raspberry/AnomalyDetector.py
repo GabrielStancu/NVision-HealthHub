@@ -2,13 +2,14 @@ import pandas as pd
 import numpy as np
 from scipy.cluster.vq import kmeans
 from scipy.cluster.vq import vq
+from sklearn.cluster import KMeans
 
 class AnomalyDetector:
-    __clustersCnt = 5
     def detectAnomalies(self, measurements):
         (temp, ecg, pulse, oxygen, gsr) = self.__splitMeasurements(measurements)
 
         tempAnomaly = self.__detectAnomalies(temp)
+        print(tempAnomaly)
         if (tempAnomaly == True):
             return temp[-1]
         #self.__detectAnomalies(pulse)
@@ -52,44 +53,40 @@ class AnomalyDetector:
         # For compatibility with the SciPy implementation
         values_raw = values_raw.reshape(-1, 1)
         values_raw = values_raw.astype('float64')
+
+        # Determine number of clusters
+        clustersCnt = self.__determineClustersCount(measurements)
         
         # Specify the data and the number of clusters to kmeans()
-        centroids, avg_distance = kmeans(values_raw, self.__clustersCnt)
+        centroids, avg_distance = kmeans(values_raw, clustersCnt)
 
         # Get the groups (clusters) and distances
         groups, cdist = vq(values_raw, centroids)
 
         # Check if any cluster represents an anomaly cluster
-        (histo, bins) = np.histogram(groups, bins=np.arange(self.__clustersCnt + 1))
+        (histo, bins) = np.histogram(groups, bins=np.arange(clustersCnt + 1))
+
+        for idx, el in enumerate(histo):
+            print(str(idx) + ': ' + str(el))
 
         # Return any anomaly
         return np.any(histo[:] == 1)
 
+    def __determineClustersCount(self, measurements):
+        # build DataFrame
+        data = pd.DataFrame(
+            {
+                'Value': [m.value for m in measurements]
+            })
 
-            
-        
+        # determine number of clusters with Elbow curve
+        n_cluster = range(1, 20)
+        kmeans = [KMeans(n_clusters = i).fit(data) for i in n_cluster]
+        scores = [kmeans[i].score(data) for i in range(len(kmeans))]
 
-
-# # Convert the salary values to a numpy array
-# salary_raw = salary_df['Salary (in USD)'].values
-
-# # For compatibility with the SciPy implementation
-# salary_raw = salary_raw.reshape(-1, 1)
-# salary_raw = salary_raw.astype('float64')
-
-# # Import kmeans from SciPy
-# from scipy.cluster.vq import kmeans
-# from scipy.cluster.vq import vq
-    
-# # Specify the data and the number of clusters to kmeans()
-# centroids, avg_distance = kmeans(salary_raw, 4)
-
-# # Get the groups (clusters) and distances
-# groups, cdist = vq(salary_raw, centroids)
-
-# # %%
-# plt.scatter(salary_raw, np.arange(0,100), c=groups)
-# plt.xlabel('Salaries in (USD)')
-# plt.ylabel('Indices')
-# plt.show()
-# # %%
+        # return the index where no significant changes occur anymore
+        for idx, score in enumerate(scores):
+            if (idx > 0):
+                if (score - scores[idx-1] < 1.5):
+                    return idx + 1
+        return len(scores)
