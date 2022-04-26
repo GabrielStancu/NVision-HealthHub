@@ -5,8 +5,11 @@ from scipy.cluster.vq import vq
 from sklearn.cluster import KMeans
 
 class AnomalyDetector:
-    def detectAnomalies(self, measurements):
+    def detectAnomalies(self, measurements, predictions):
         (temp, ecg, pulse, oxygen, gsr) = self.__splitMeasurements(measurements)
+        # TODO: append the predictions and check for anomalies. 
+        # If predictions are anomalies (isolated cluster or they are far from their center)
+        # send alert (~return True, maybe the type?)
 
         tempAnomaly = self.__detectAnomalies(temp)
         print(tempAnomaly)
@@ -18,23 +21,6 @@ class AnomalyDetector:
         #self.__detectAnomalies(ecg)
 
         return None
-        
-
-    def __splitMeasurements(self, measurements):
-        temp, ecg, pulse, oxygen, gsr = [], [], [], [], []
-        for measurement in measurements:
-            sensorType = measurement.type
-            if (sensorType == 'TMP'):
-                temp.append(measurement)
-            elif (sensorType == 'ECG'):
-                ecg.append(measurement)
-            elif (sensorType == 'BPM'):
-                pulse.append(measurement)
-            elif (sensorType == 'OXY'):
-                oxygen.append(measurement)
-            elif (sensorType == 'GSR'):
-                gsr.append(measurement)
-        return (temp, ecg, pulse, oxygen, gsr)
 
     def __detectAnomalies(self, measurements):
         if (len(measurements) < 10):
