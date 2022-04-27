@@ -32,7 +32,7 @@ const char pulseType[4] = "BPM";
 const char oxygenType[4] = "OXY";
 const char gsrType[4] = "GSR";
 
-const int reqTmp = 5;
+const int reqTmp = 1;
 const int reqEcg = 10;
 const int reqHb = 5;
 const int reqOxygen = 5;

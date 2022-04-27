@@ -15,6 +15,7 @@ int oxyCnt = 0;
 int gsrCnt = 0;
 
 bool canGoNextState = false;
+bool sentNoOp = false;
 unsigned long timestamp;
 
 void setup() { 
@@ -47,6 +48,7 @@ void opBtnChange() {
     if (sendMode == 0) {
       sendMode = 1;
       pushingOpBtn = false;
+      sentNoOp = false;
     }  
   } else {
     pushingOpBtn = false;
@@ -92,10 +94,10 @@ void sendData() {
 float measureTemperature() {
   float tempVal =  0;
   
-  for(int i = 0; i < 100; i++) {
+  for(int i = 0; i < 500; i++) {
     tempVal += analogRead(TEMPERATURE);
   }
-  tempVal /= 100;
+  tempVal /= 500;
   
   float measuredVal = (tempVal/1024.0)*4850; 
   float celsius = measuredVal/10;
@@ -149,7 +151,11 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
 }
 
 void sendNoOp() {
-  Serial.println("NOP");
+  if (!sentNoOp) 
+  {
+    Serial.println("NOP");
+    sentNoOp = true;
+  }
 }
 
 void countMeasurement(int *measurementCnt, int reqCnt) {
