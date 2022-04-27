@@ -7,31 +7,42 @@ def myconverter(o):
             return o.__str__()
 
 class DataReader:
-    ser = serial.Serial('/dev/ttyACM0',9600)
+    ser = serial.Serial(
+        port='/dev/ttyACM0',
+        baudrate = 9600,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        bytesize=serial.EIGHTBITS,
+        timeout=1
+    )   
     refTimestamp = datetime.datetime.now()
     refMillis = 0
 
     def read(self):
         line = self.ser.readline()
+        try:
+            parts = line.decode("utf-8").replace('\n', '').replace('\r', '').split(";")
+            mType = parts[0]
 
-        parts = line.split(";")
-        type = parts[0]
+            if (mType == 'NOP'):
+                return Measurement('NOP', None, None)
+            elif (len(parts) == 0):
+                return Measurement('NIL', None, None)
 
-        if (type == "NOP"):
-            return None
+            print(line)
 
-        value = float(parts[1])
-        measurementMillis = float(parts[2])
-        timestamp = self.__getMeasurementTime(measurementMillis)
-        return Measurement(type, value, timestamp)
+            value = float(parts[1])
+            measurementMillis = float(parts[2])
+            timestamp = self.__getMeasurementTime(measurementMillis)
+            return Measurement(mType, value, timestamp)
+        except: 
+            return Measurement('NIL', None, None)
 
-    def __getMeasurementTime(relMillis):
-        global refMillis
-        global refTimestamp
-        if (refMillis == 0):
-            refMillis = relMillis
-            refTimestamp = datetime.datetime.now()
+    def __getMeasurementTime(self, relMillis):
+        if (self.refMillis == 0):
+            self.refMillis = relMillis
+            self.refTimestamp = datetime.datetime.now()
 
-        relTime = relMillis - refMillis
-        timestamp = refTimestamp + datetime.timedelta(milliseconds=relTime)
+        relTime = relMillis - self.refMillis
+        timestamp = self.refTimestamp + datetime.timedelta(milliseconds=relTime)
         return timestamp

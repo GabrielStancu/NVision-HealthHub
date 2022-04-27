@@ -1,26 +1,37 @@
 from Measurement import Measurement
-import pymongo
+from Splitter import Splitter
+from tinydb import TinyDB, Query
+import json 
 
 class DataRepository:
-    dbClient = pymongo.MongoClient("mongodb://localhost:27017/")
-    db = dbClient["healthDb"]
-    measurementsCollection = db["measurements"]
-    unsentQuery = { "sent": False }
-    updateQuery = { "$set": { "sent": True } }
+    db = TinyDB("nvision.json").table('measurements')
+    Sent = Query()
+    splitter = Splitter()
 
     def storeData(self, measurement):
-        self.measurementsCollection.insert_one(measurement)
+        self.db.insert({"type": measurement.type, "value": measurement.value, "timestamp": str(measurement.timestamp), "sent": 0})
 
     def getData(self):
-        collection = self.measurementsCollection
-        return self.__collectionToMeasurements(collection)     
+        records = self.db.all()   
+        measurements = self.__recordsToMeasurements(records)
+        return self.splitter.splitMeasurements(measurements)
 
     def getUnsentData(self):
-        collection = self.getData().find(self.unsentQuery)
-        return self.__collectionToMeasurements(collection)
+        records = self.db.search(self.Sent.sent == 0)
+        return self.__recordsToMeasurements(records)
 
-    def __collectionToMeasurements(collection):
+    def updateSentData(self, measurements):
+        for measurement in measurements:    
+            self.db.update({"sent": 1}, self.Sent.timestamp == measurement.timestamp)
+
+    def __recordsToMeasurements(self, records):
         measurements = []
-        for elem in collection:
-            measurements.append(Measurement(elem.type, elem.value, elem.timestamp))
+        if (records):
+            for record in records:  
+                strRecord = str(record).replace('\'', '"')
+                jsonRecord = json.loads(strRecord)
+                type = jsonRecord['type']
+                value = jsonRecord['value']
+                timestamp = jsonRecord['timestamp']
+                measurements.append(Measurement(type, value, timestamp))
         return measurements
