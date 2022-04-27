@@ -9,7 +9,7 @@ class DataRepository:
     splitter = Splitter()
 
     def storeData(self, measurement):
-        self.db.insert({"type":measurement.type, "value": measurement.value, "timestamp": str(measurement.timestamp), "sent": 0})
+        self.db.insert({"type": measurement.type, "value": measurement.value, "timestamp": str(measurement.timestamp), "sent": 0})
 
     def getData(self):
         records = self.db.all()   

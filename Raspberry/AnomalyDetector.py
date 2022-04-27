@@ -6,23 +6,27 @@ from sklearn.cluster import KMeans
 
 class AnomalyDetector:
     def detectAnomalies(self, measurements, predictions):
-        (temp, ecg, pulse, oxygen, gsr) = self.__splitMeasurements(measurements)
-        # TODO: append the predictions and check for anomalies. 
-        # If predictions are anomalies (isolated cluster or they are far from their center)
-        # send alert (~return True, maybe the type?)
+        (tempM, ecgM, pulseM, oxygenM, gsrM) = measurements 
+        (tempP, ecgP, pulseP, oxygenP, gsrP) = predictions
 
-        tempAnomaly = self.__detectAnomalies(temp)
-        print(tempAnomaly)
+        temp = tempM + tempP
+        ecg = ecgM + ecgP
+        pulse = pulseM + pulseP
+        oxygen = oxygenM + oxygenP
+        gsr = gsrM + gsrP
+
+        anomalies = []
+        tempAnomaly = self.__detectAnomalies(temp, len(tempP))
         if (tempAnomaly == True):
-            return temp[-1]
+            anomalies.append('TMP')
         #self.__detectAnomalies(pulse)
         #self.__detectAnomalies(oxygen)
         #self.__detectAnomalies(gsr)
         #self.__detectAnomalies(ecg)
+        
+        return anomalies
 
-        return None
-
-    def __detectAnomalies(self, measurements):
+    def __detectAnomalies(self, measurements, predCnt):
         if (len(measurements) < 10):
             return
 
@@ -49,14 +53,29 @@ class AnomalyDetector:
         # Get the groups (clusters) and distances
         groups, cdist = vq(values_raw, centroids)
 
-        # Check if any cluster represents an anomaly cluster
-        (histo, bins) = np.histogram(groups, bins=np.arange(clustersCnt + 1))
+        # Check if prediction finds itself in isolated cluster
+        isIsolated = self.__isIsolatedCluster(groups, predCnt)
+        if (isIsolated == True):
+            return True 
+        
+        # Check if prediction is placed far away from the centroid of the cluster it belongs to 
+        isFarFromCentroid = self.__isFarFromCentroid(cdist, predCnt, avg_distance)
+        return isFarFromCentroid
 
-        for idx, el in enumerate(histo):
-            print(str(idx) + ': ' + str(el))
+    def __isIsolatedCluster(self, groups, cnt):
+        predGroups = groups[-cnt:]
+        (histo, _) = np.histogram(groups, bins=np.arange(len(groups) + 1))
+        for predGroup in predGroups:
+            if (histo[predGroup] < 5):
+                return True
+        return False
 
-        # Return any anomaly
-        return np.any(histo[:] == 1)
+    def __isFarFromCentroid(self, distances, cnt, avgDistance):
+        predDistances = distances[-cnt:]
+        for predDistance in predDistances:
+            if (predDistance >= 2 * avgDistance):
+                return True
+        return False        
 
     def __determineClustersCount(self, measurements):
         # build DataFrame

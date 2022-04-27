@@ -20,18 +20,23 @@ class DataReader:
 
     def read(self):
         line = self.ser.readline()
-        parts = line.decode("utf-8").replace('\n', '').replace('\r', '').split(";")
-        mType = parts[0]
+        try:
+            parts = line.decode("utf-8").replace('\n', '').replace('\r', '').split(";")
+            mType = parts[0]
 
-        if (mType == 'NOP' or len(parts) <= 1):
-            return None
+            if (mType == 'NOP'):
+                return Measurement('NOP', None, None)
+            elif (len(parts) == 0):
+                return Measurement('NIL', None, None)
 
-        print(line)
+            print(line)
 
-        value = float(parts[1])
-        measurementMillis = float(parts[2])
-        timestamp = self.__getMeasurementTime(measurementMillis)
-        return Measurement(mType, value, timestamp)
+            value = float(parts[1])
+            measurementMillis = float(parts[2])
+            timestamp = self.__getMeasurementTime(measurementMillis)
+            return Measurement(mType, value, timestamp)
+        except: 
+            return Measurement('NIL', None, None)
 
     def __getMeasurementTime(self, relMillis):
         if (self.refMillis == 0):

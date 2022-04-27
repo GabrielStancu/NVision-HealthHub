@@ -12,21 +12,20 @@ repository = DataRepository()
 detector = AnomalyDetector()
 sender = DataSender()
 alerter = AnomalyAlerter()
-analyzed = True
 
 while True:
     measurement = reader.read()
-    if (measurement != None):
-        repository.storeData(measurement)
-        analyzed = False
-    elif (measurement == None and analyzed == False):
+    if (measurement.type == 'NOP'):
         measurements = repository.getData()
         predictions = predictor.predict(measurements)
         anomalies = detector.detectAnomalies(measurements, predictions)
-        if (anomalies != None):
+        if (len(anomalies) > 0):
             alerter.alertAnomaly(anomalies)
-        analyzed = True
-    else:
+    elif (measurement.type == 'NIL'):
         unsentMeasurements = repository.getUnsentData()
         sender.sendNotSentData(unsentMeasurements, serialNumber)
         repository.updateSentData(unsentMeasurements)
+    else:
+        repository.storeData(measurement)
+        
+    
