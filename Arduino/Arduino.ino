@@ -18,6 +18,9 @@ bool canGoNextState = false;
 bool sentNoOp = false;
 unsigned long timestamp;
 
+float value = 0;
+int crtMeasurementCnt = averageCounts;
+
 void setup() { 
   Serial.begin(9600);
   pinMode(TEMPERATURE, INPUT);
@@ -92,16 +95,9 @@ void sendData() {
 }
 
 float measureTemperature() {
-  float tempVal =  0;
-  
-  for(int i = 0; i < 500; i++) {
-    tempVal += analogRead(TEMPERATURE);
-  }
-  tempVal /= 500;
-  
-  float measuredVal = (tempVal/1024.0)*4850; 
-  float celsius = measuredVal/10;
+  float tempVal = analogRead(TEMPERATURE);
   timestamp = millis();
+  float celsius = (tempVal/1024.0)*275; 
 
   return celsius;
 }
@@ -110,7 +106,8 @@ float measureEcg() {
   if((digitalRead(LO_PLUS) == HIGH)||(digitalRead(LO_MINUS) == HIGH)){
     return 0;
   }
-  float ecg = analogRead(ECG);
+  int ecg = analogRead(ECG);
+  ecg = map(ecg, 250, 400, 0, 100); //flatten
   timestamp = millis();
   return ecg;
 }
@@ -128,13 +125,34 @@ float measureSpO2() {
 }
 
 float measureGsr() {
-  int gsr = analogRead(0);
+  int gsr = analogRead(GSR);
   timestamp = millis();
+  
   return gsr;
 }
 
 void sendValue(float minValue, float maxValue, const char type[], float (*measureValueFunc)(), int *measurementCnt, int reqCnt) {
-  float value = measureValueFunc();
+  if (!pushingOpBtn)
+   return;
+
+  float measuredValue = measureValueFunc();
+  if (measuredValue == 0)
+    return;
+  
+  value += measuredValue;
+
+  if (reqCnt == 1) 
+  {
+    if (crtMeasurementCnt != 0) 
+    {
+      crtMeasurementCnt--;
+      return;
+    }
+      
+    value /= averageCounts;
+    crtMeasurementCnt = averageCounts;
+  }
+
   String valueStr = String(value, 3);
   String timestampStr = String(timestamp);
   String sendValue = "";
@@ -148,6 +166,8 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
     sendValue.concat(timestampStr);
     Serial.println(sendValue);
   }
+
+  value = 0;
 }
 
 void sendNoOp() {
