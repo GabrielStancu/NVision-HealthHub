@@ -16,14 +16,27 @@ class AnomalyDetector:
         gsr = gsrM + gsrP
 
         anomalies = []
+
         tempAnomaly = self.__detectAnomalies(temp, len(tempP))
         if (tempAnomaly == True):
             anomalies.append('TMP')
-        #self.__detectAnomalies(pulse)
-        #self.__detectAnomalies(oxygen)
-        #self.__detectAnomalies(gsr)
-        #self.__detectAnomalies(ecg)
-        
+
+        ecgAnomaly = self.__detectAnomalies(ecg, len(ecgP))
+        if (ecgAnomaly == True):
+            anomalies.append('ECG')
+
+        pulseAnomaly = self.__detectAnomalies(pulse, len(pulseP))
+        if (pulseAnomaly == True):
+            anomalies.append('BPM')
+
+        oxygenAnomaly = self.__detectAnomalies(oxygen, len(oxygenP))
+        if (oxygenAnomaly == True):
+            anomalies.append('OXY')
+
+        gsrAnomaly = self.__detectAnomalies(gsr, len(gsrP))
+        if (gsrAnomaly == True):
+            anomalies.append('GSR')
+
         return anomalies
 
     def __detectAnomalies(self, measurements, predCnt):
@@ -92,6 +105,6 @@ class AnomalyDetector:
         # return the index where no significant changes occur anymore
         for idx, score in enumerate(scores):
             if (idx > 0):
-                if (score - scores[idx-1] < 1.5):
+                if (score - scores[idx-1] < 3):
                     return idx + 1
         return len(scores)
