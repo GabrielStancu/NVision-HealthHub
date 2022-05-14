@@ -27,4 +27,4 @@ while True:
         repository.updateSentData(unsentMeasurements)
     else:
         repository.storeData(measurement)
-    
+        

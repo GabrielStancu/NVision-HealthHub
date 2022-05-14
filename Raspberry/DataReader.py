@@ -9,10 +9,10 @@ def myconverter(o):
 class DataReader:
     ser = serial.Serial(
         port='/dev/ttyACM0',
-        baudrate = 9600,
-        parity=serial.PARITY_NONE,
-        stopbits=serial.STOPBITS_ONE,
+        baudrate = 115200,
         bytesize=serial.EIGHTBITS,
+        stopbits=serial.STOPBITS_ONE,
+        parity=serial.PARITY_NONE,
         timeout=1
     )   
     refTimestamp = datetime.datetime.now()
