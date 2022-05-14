@@ -15,7 +15,8 @@ int gsrCnt = 0;
 
 bool canGoNextState = false;
 bool sentNoOp = false;
-static volatile int canSendData = 0;
+bool bootRun = true;
+static volatile bool canSendData = false;
 unsigned long timestamp;
 
 float value = 0;
@@ -54,7 +55,7 @@ void timerSetup()
 
 void takeMeasurement()
 {
-  canSendData = 1;
+  canSendData = true;
 }
 
 void opBtnChange() {
@@ -96,11 +97,13 @@ void sendData() {
         break;
     }
     if (canGoNextState) {
-      sendMode = (sendMode + 1) % 6;
+      if (sendMode > 0) {
+        sendMode = (sendMode + 1) % 6;
+      }
       pushingOpBtn = false;
       resetState();
     }
-    canSendData = 0;
+    canSendData = false;
   }
 }
 

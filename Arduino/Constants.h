@@ -40,4 +40,4 @@ const int reqHb = 1;
 const int reqOxygen = 1;
 const int reqGsr = 1;
 
-const int averageCounts = 500;
+const int averageCounts = 50;
