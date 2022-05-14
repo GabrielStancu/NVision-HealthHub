@@ -16,15 +16,15 @@
 #define TIMER_COUNT_UP 250
 
 const float minValidTemp = 32;
-const float maxValidTemp = 42;
+const float maxValidTemp = 40;
 const float minValidEcg = 1;
 const float maxValidEcg = 500;
-const float minValidPulse = 30;
-const float maxValidPulse = 200;
-const float minValidOxygen = 80;
-const float maxValidOxygen = 101;
-const float minValidGsr = 1;
-const float maxValidGsr = 1022;
+const float minValidPulse = 60;
+const float maxValidPulse = 150;
+const float minValidOxygen = 85;
+const float maxValidOxygen = 99;
+const float minValidGsr = 200;
+const float maxValidGsr = 300;
 
 const char separator = ';';
 

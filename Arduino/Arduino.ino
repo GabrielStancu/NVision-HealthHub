@@ -110,7 +110,7 @@ void sendData() {
 float measureTemperature() {
   float tempVal = analogRead(TEMPERATURE);
   timestamp = millis();
-  float celsius = (tempVal/1024.0)*250; 
+  float celsius = (tempVal/1024.0)*240; 
 
   return celsius;
 }
@@ -152,7 +152,7 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
    return;
 
   float measuredValue = measureValueFunc();
-  if (measuredValue == 0)
+  if (measuredValue < minValue || measuredValue > maxValue)
     return;
   
   value += measuredValue;
