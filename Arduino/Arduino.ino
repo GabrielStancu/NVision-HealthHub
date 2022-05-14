@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <TimerOne.h>
 #include "MAX30100_PulseOximeter.h"
 #include "Constants.h"
 
@@ -6,8 +7,6 @@ PulseOximeter pox;
 
 bool pushingOpBtn = false;
 int sendMode = 0;
-uint32_t tsLastReport = 0;
-
 int tmpCnt = 0;
 int ecgCnt = 0;
 int hbCnt = 0;
@@ -16,13 +15,14 @@ int gsrCnt = 0;
 
 bool canGoNextState = false;
 bool sentNoOp = false;
+static volatile int canSendData = 0;
 unsigned long timestamp;
 
 float value = 0;
 int crtMeasurementCnt = averageCounts;
 
 void setup() { 
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(TEMPERATURE, INPUT);
   pinMode(LO_PLUS, INPUT); 
   pinMode(LO_MINUS, INPUT); 
@@ -38,11 +38,23 @@ void setup() {
   pox.begin();
   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
   timestamp = millis();
+  timerSetup();
 }
 
 void loop() {
   lightOpLeds();
   sendData();
+}
+
+void timerSetup()
+{
+  Timer1.initialize(REPORTING_PERIOD_MS);
+  Timer1.attachInterrupt(takeMeasurement); 
+}
+
+void takeMeasurement()
+{
+  canSendData = 1;
 }
 
 void opBtnChange() {
@@ -58,9 +70,9 @@ void opBtnChange() {
   }
 }
 
-void sendData() {
+void sendData() { 
   pox.update();
-  if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+  if (canSendData) {
     switch(sendMode) {
       case 0:
         sendNoOp();
@@ -83,21 +95,19 @@ void sendData() {
       default: 
         break;
     }
-
-    tsLastReport = millis();
-
     if (canGoNextState) {
       sendMode = (sendMode + 1) % 6;
       pushingOpBtn = false;
       resetState();
     }
+    canSendData = 0;
   }
 }
 
 float measureTemperature() {
   float tempVal = analogRead(TEMPERATURE);
   timestamp = millis();
-  float celsius = (tempVal/1024.0)*275; 
+  float celsius = (tempVal/1024.0)*250; 
 
   return celsius;
 }
@@ -106,8 +116,11 @@ float measureEcg() {
   if((digitalRead(LO_PLUS) == HIGH)||(digitalRead(LO_MINUS) == HIGH)){
     return 0;
   }
-  int ecg = analogRead(ECG);
-  ecg = map(ecg, 250, 400, 0, 100); //flatten
+  float ecg = analogRead(ECG);
+  if (ecg >= minValidEcg && ecg <= maxValidEcg) 
+  {
+     ecg = map(ecg, 200, 500, 100, 250);
+  }
   timestamp = millis();
   return ecg;
 }
@@ -165,7 +178,7 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
     sendValue.concat(separator);
     sendValue.concat(timestampStr);
     Serial.println(sendValue);
-  }
+  } 
 
   value = 0;
 }
