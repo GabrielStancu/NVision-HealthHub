@@ -20,12 +20,11 @@ while True:
         predictions = predictor.predict(measurements)
         anomalies = detector.detectAnomalies(measurements, predictions)
         if (len(anomalies) > 0):
-            alerter.alertAnomaly(anomalies)
+            alerter.alertAnomaly(anomalies, serialNumber)
     elif (measurement.type == 'NIL'):
         unsentMeasurements = repository.getUnsentData()
         sender.sendNotSentData(unsentMeasurements, serialNumber)
         repository.updateSentData(unsentMeasurements)
     else:
         repository.storeData(measurement)
-        
     
