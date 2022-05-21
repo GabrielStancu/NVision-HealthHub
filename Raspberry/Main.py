@@ -1,30 +1,30 @@
-from AnomalyAlerter import AnomalyAlerter
 from DataReader import DataReader
 from DataRepository import DataRepository
 from DataSender import DataSender
 from AnomalyDetector import AnomalyDetector
 from Predictor import Predictor
+from EcgProcessor import EcgProcessor
 
-serialNumber = "2a994998-7c5a-4062-84cd-a20acdaec72f"
+serial_number = "2a994998-7c5a-4062-84cd-a20acdaec72f"
 reader = DataReader()
 predictor = Predictor()
 repository = DataRepository()
-detector = AnomalyDetector()
+ecg_processor = EcgProcessor()
+detector = AnomalyDetector(ecg_processor)
 sender = DataSender()
-alerter = AnomalyAlerter()
 
 while True:
     measurement = reader.read()
     if (measurement.type == 'NOP'):
-        measurements = repository.getData()
+        measurements = repository.get_data()
         predictions = predictor.predict(measurements)
-        anomalies = detector.detectAnomalies(measurements, predictions)
+        anomalies = detector.detect_anomalies(measurements, predictions, ecg_processor)
         if (len(anomalies) > 0):
-            alerter.alertAnomaly(anomalies, serialNumber)
+            sender.send_alert(anomalies, serial_number)
     elif (measurement.type == 'NIL'):
-        unsentMeasurements = repository.getUnsentData()
-        sender.sendNotSentData(unsentMeasurements, serialNumber)
-        repository.updateSentData(unsentMeasurements)
+        unsent_measurements = repository.get_unsent_data()
+        sender.send_not_sent_data(unsent_measurements, serial_number)
+        repository.update_sent_data(unsent_measurements)
     else:
-        repository.storeData(measurement)
+        repository.store_data(measurement)
         

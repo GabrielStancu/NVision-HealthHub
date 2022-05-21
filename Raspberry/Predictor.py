@@ -3,17 +3,16 @@ from Measurement import Measurement
 
 class Predictor:
     def predict(self, measurements):
-        (temp, ecg, pulse, oxygen, gsr) = measurements
+        (temp, _, pulse, oxygen, gsr) = measurements
         predictions = (
-            self.__predictForType(temp, 1, 'TMP'),
-            self.__predictForType(ecg, 5, 'ECG'),
-            self.__predictForType(pulse, 1, 'BPM'),
-            self.__predictForType(oxygen, 1, 'OXY'),
-            self.__predictForType(gsr, 1, 'GSR')
+            self.__predict_for_type(temp, 1, 'TMP'),
+            self.__predict_for_type(pulse, 1, 'BPM'),
+            self.__predict_for_type(oxygen, 1, 'OXY'),
+            self.__predict_for_type(gsr, 1, 'GSR')
         )
         return predictions
 
-    def __predictForType(self, measurements, count, type):
+    def __predict_for_type(self, measurements, count, type):
         if (len(measurements) < 10):
             return []
 
@@ -24,12 +23,12 @@ class Predictor:
         predictions = []
 
         for i in range(0, count):
-            measurement = self.__predictionToMeasurement(output[i], type)
+            measurement = self.__prediction_to_measurement(output[i], type)
             predictions.append(measurement)
         
         return predictions 
 
-    def __predictionToMeasurement(self, prediction, type):
+    def __prediction_to_measurement(self, prediction, type):
         return Measurement(type, prediction, None)
 	
 

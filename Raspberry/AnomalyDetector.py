@@ -5,41 +5,46 @@ from scipy.cluster.vq import vq
 from sklearn.cluster import KMeans
 
 class AnomalyDetector:
-    def detectAnomalies(self, measurements, predictions):
-        (tempM, ecgM, pulseM, oxygenM, gsrM) = measurements 
-        (tempP, ecgP, pulseP, oxygenP, gsrP) = predictions
+    __ecg_processor = None
 
-        temp = tempM + tempP
-        ecg = ecgM + ecgP
-        pulse = pulseM + pulseP
-        oxygen = oxygenM + oxygenP
-        gsr = gsrM + gsrP
+    def __init__(self, ecg_processor):
+        self.__ecg_processor = ecg_processor
+
+    def detect_anomalies(self, measurements, predictions):
+        (temp_m, ecg_m, pulse_m, oxygen_m, gsr_m) = measurements 
+        (temp_p, pulse_p, oxygen_p, gsr_p) = predictions
+
+        temp = temp_m + temp_p
+        pulse = pulse_m + pulse_p
+        oxygen = oxygen_m + oxygen_p
+        gsr = gsr_m + gsr_p
 
         anomalies = []
 
-        tempAnomaly = self.__detectAnomalies(temp, len(tempP))
-        if (tempAnomaly == True):
+        temp_anomaly = self.__detect_anomalies(temp, len(temp_p))
+        if (temp_anomaly == True):
             anomalies.append('TMP')
 
-        ecgAnomaly = self.__detectAnomalies(ecg, len(ecgP))
-        if (ecgAnomaly == True):
-            anomalies.append('ECG')
-
-        pulseAnomaly = self.__detectAnomalies(pulse, len(pulseP))
-        if (pulseAnomaly == True):
+        pulse_anomaly = self.__detect_anomalies(pulse, len(pulse_p))
+        if (pulse_anomaly == True):
             anomalies.append('BPM')
 
-        oxygenAnomaly = self.__detectAnomalies(oxygen, len(oxygenP))
-        if (oxygenAnomaly == True):
+        oxygen_anomaly = self.__detect_anomalies(oxygen, len(oxygen_p))
+        if (oxygen_anomaly == True):
             anomalies.append('OXY')
 
-        gsrAnomaly = self.__detectAnomalies(gsr, len(gsrP))
-        if (gsrAnomaly == True):
+        gsr_anomaly = self.__detect_anomalies(gsr, len(gsr_p))
+        if (gsr_anomaly == True):
             anomalies.append('GSR')
+
+        ecg_frequency = 50
+        ecg_anomaly = self.__ecg_processor.detect_anomalies(ecg_m, ecg_frequency)
+        if (ecg_anomaly == True):
+            anomalies.append('ECG')
 
         return anomalies
 
-    def __detectAnomalies(self, measurements, predCnt):
+    def __detect_anomalies(self, measurements, pred_cnt):
         if (len(measurements) < 10):
             return
 
@@ -58,7 +63,7 @@ class AnomalyDetector:
         values_raw = values_raw.astype('float64')
 
         # Determine number of clusters
-        clustersCnt = self.__determineClustersCount(measurements)
+        clustersCnt = self.__determine_clusters_count(measurements)
         
         # Specify the data and the number of clusters to kmeans()
         centroids, avg_distance = kmeans(values_raw, clustersCnt)
@@ -67,30 +72,30 @@ class AnomalyDetector:
         groups, cdist = vq(values_raw, centroids)
 
         # Check if prediction finds itself in isolated cluster
-        isIsolated = self.__isIsolatedCluster(groups, predCnt)
-        if (isIsolated == True):
+        is_isolated = self.__is_isolated_cluster(groups, pred_cnt)
+        if (is_isolated == True):
             return True 
         
         # Check if prediction is placed far away from the centroid of the cluster it belongs to 
-        isFarFromCentroid = self.__isFarFromCentroid(cdist, predCnt, avg_distance)
-        return isFarFromCentroid
+        is_far_from_centroid = self.__is_far_from_centroid(cdist, pred_cnt, avg_distance)
+        return is_far_from_centroid
 
-    def __isIsolatedCluster(self, groups, cnt):
-        predGroups = groups[-cnt:]
+    def __is_isolated_cluster(self, groups, cnt):
+        pred_groups = groups[-cnt:]
         (histo, _) = np.histogram(groups, bins=np.arange(len(groups) + 1))
-        for predGroup in predGroups:
-            if (histo[predGroup] < 5):
+        for pred_group in pred_groups:
+            if (histo[pred_group] < 5):
                 return True
         return False
 
-    def __isFarFromCentroid(self, distances, cnt, avgDistance):
-        predDistances = distances[-cnt:]
-        for predDistance in predDistances:
-            if (predDistance >= 2 * avgDistance):
+    def __is_far_from_centroid(self, distances, cnt, avg_distance):
+        pred_distances = distances[-cnt:]
+        for pred_distance in pred_distances:
+            if (pred_distance >= 2 * avg_distance):
                 return True
         return False        
 
-    def __determineClustersCount(self, measurements):
+    def __determine_clusters_count(self, measurements):
         # build DataFrame
         data = pd.DataFrame(
             {

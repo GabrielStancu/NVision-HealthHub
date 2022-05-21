@@ -1,16 +1,16 @@
 class Splitter:
-    def splitMeasurements(self, measurements):
+    def split_measurements(self, measurements):
         temp, ecg, pulse, oxygen, gsr = [], [], [], [], []
         for measurement in measurements:
-            sensorType = measurement.type
-            if (sensorType == 'TMP'):
+            sensor_type = measurement.type
+            if (sensor_type == 'TMP'):
                 temp.append(measurement)
-            elif (sensorType == 'ECG'):
+            elif (sensor_type == 'ECG'):
                 ecg.append(measurement)
-            elif (sensorType == 'BPM'):
+            elif (sensor_type == 'BPM'):
                 pulse.append(measurement)
-            elif (sensorType == 'OXY'):
+            elif (sensor_type == 'OXY'):
                 oxygen.append(measurement)
-            elif (sensorType == 'GSR'):
+            elif (sensor_type == 'GSR'):
                 gsr.append(measurement)
         return (temp, ecg, pulse, oxygen, gsr)
