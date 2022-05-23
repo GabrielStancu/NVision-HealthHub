@@ -15,8 +15,8 @@ class DataReader:
         parity=serial.PARITY_NONE,
         timeout=1
     )   
-    refTimestamp = datetime.datetime.now()
-    refMillis = 0
+    ref_timestamp = datetime.datetime.now()
+    ref_millis = 0
 
     def read(self):
         line = self.ser.readline()
@@ -28,8 +28,6 @@ class DataReader:
                 return Measurement('NOP', None, None)
             elif (len(parts) == 0):
                 return Measurement('NIL', None, None)
-
-            print(line)
 
             value = float(parts[1])
             measurement_millis = float(parts[2])

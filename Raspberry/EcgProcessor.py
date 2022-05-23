@@ -2,7 +2,12 @@ import neurokit2 as nk
 from datetime import datetime
 
 class EcgProcessor:
+    __date_format = '%Y-%m-%d %H:%M:%S.%f'
+
     def detect_anomalies(self, measurements, frequency):
+        if (len(measurements) < 4000):
+            return False
+
         values = [m.value for m in measurements]
         (r_peaks, p_peaks, q_peaks, s_peaks, t_peaks) = self.__get_segments_indices(values, frequency)
 
@@ -40,8 +45,8 @@ class EcgProcessor:
         for i in range(len(r_peaks) - 1):
             m1 = measurements[r_peaks[i]]
             m2 = measurements[r_peaks[2]]
-            t1 = datetime.strptime(m1.timestamp)
-            t2 = datetime.strptime(m2.timestamp)
+            t1 = datetime.strptime(m1.timestamp, self.__date_format)
+            t2 = datetime.strptime(m2.timestamp, self.__date_format)
             diff = t2 - t1
             millis = diff.microseconds / 1000
             if (millis < 600 or millis > 1000):
@@ -53,8 +58,8 @@ class EcgProcessor:
         # check if seg1 comes before seg2 or measurements started with an seg2
         first_1 = measurements[segments1[0]]
         first_2 = measurements[segments2[0]]
-        time_1 = datetime.strptime(first_1.timestamp)
-        time_2 = datetime.strptime(first_2.timestamp)
+        time_1 = datetime.strptime(first_1.timestamp, self.__date_format)
+        time_2 = datetime.strptime(first_2.timestamp, self.__date_format)
         offset = 0
         if (time_2 > time_1):
             offset = 1
@@ -63,8 +68,8 @@ class EcgProcessor:
         for i in range(seg_len - offset):
             m1 = measurements[segments1[i]]
             m2 = measurements[segments2[i + offset]]
-            time_1 = datetime.strptime(m1.timestamp)
-            time_2 = datetime.strptime(m2.timestamp)
+            time_1 = datetime.strptime(m1.timestamp, self.__date_format)
+            time_2 = datetime.strptime(m2.timestamp, self.__date_format)
             diff = time_2 - time_1
             millis = diff.microseconds / 1000
             # valid values should be between min_len-max_len [ms]

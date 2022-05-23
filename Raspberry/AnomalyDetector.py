@@ -45,7 +45,7 @@ class AnomalyDetector:
         return anomalies
 
     def __detect_anomalies(self, measurements, pred_cnt):
-        if (len(measurements) < 10):
+        if (len(measurements) < 30):
             return
 
         # Create pandas DataFrame

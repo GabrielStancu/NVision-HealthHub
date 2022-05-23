@@ -7,9 +7,18 @@ class DataRepository:
     db = TinyDB("nvision.json").table('measurements')
     sent = Query()
     splitter = Splitter()
+    measurements = [None for _ in range(5004)]
+    counter = 0
 
-    def store_data(self, measurement):
-        self.db.insert({"type": measurement.type, "value": measurement.value, "timestamp": str(measurement.timestamp), "sent": 0})
+    def keep_data(self, measurement):
+        self.measurements[self.counter] = {"type": measurement.type, "value": measurement.value, "timestamp": str(measurement.timestamp), "sent": 0}
+        self.counter = self.counter + 1
+
+    def store_data(self):
+        if (self.counter == 5004):
+            self.counter = 0
+            self.db.insert_multiple(self.measurements)
+            self.measurements = [None for _ in range(5004)]
 
     def get_data(self):
         records = self.db.all()   
@@ -17,7 +26,7 @@ class DataRepository:
         return self.splitter.split_measurements(measurements)
 
     def get_unsent_data(self):
-        records = self.db.search(self.Sent.sent == 0)
+        records = self.db.search(self.sent.sent == 0)
         return self.__records_to_measurements(records)
 
     def update_sent_data(self, measurements):
