@@ -110,7 +110,7 @@ void sendData() {
 float measureTemperature() {
   float tempVal = analogRead(TEMPERATURE);
   timestamp = millis();
-  float celsius = (tempVal/1024.0)*240; 
+  float celsius = (tempVal/1024.0)*250; 
 
   return celsius;
 }
@@ -120,10 +120,6 @@ float measureEcg() {
     return 0;
   }
   float ecg = analogRead(ECG);
-  if (ecg >= minValidEcg && ecg <= maxValidEcg) 
-  {
-     ecg = map(ecg, 200, 500, 100, 250);
-  }
   timestamp = millis();
   return ecg;
 }
@@ -154,12 +150,12 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
   float measuredValue = measureValueFunc();
   if (measuredValue < minValue || measuredValue > maxValue)
     return;
-  
+    
   value += measuredValue;
 
   if (reqCnt == 1) 
   {
-    if (crtMeasurementCnt != 0) 
+    if (crtMeasurementCnt > 0) 
     {
       crtMeasurementCnt--;
       return;
@@ -168,11 +164,9 @@ void sendValue(float minValue, float maxValue, const char type[], float (*measur
     value /= averageCounts;
     crtMeasurementCnt = averageCounts;
   }
-
   String valueStr = String(value, 3);
   String timestampStr = String(timestamp);
   String sendValue = "";
-
   if (value >= minValue && value <= maxValue && pushingOpBtn) {
     countMeasurement(measurementCnt, reqCnt);
     sendValue.concat(type);
