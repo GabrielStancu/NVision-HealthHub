@@ -9,40 +9,38 @@ def myconverter(o):
 class DataReader:
     ser = serial.Serial(
         port='/dev/ttyACM0',
-        baudrate = 9600,
-        parity=serial.PARITY_NONE,
-        stopbits=serial.STOPBITS_ONE,
+        baudrate = 115200,
         bytesize=serial.EIGHTBITS,
+        stopbits=serial.STOPBITS_ONE,
+        parity=serial.PARITY_NONE,
         timeout=1
     )   
-    refTimestamp = datetime.datetime.now()
-    refMillis = 0
+    ref_timestamp = datetime.datetime.now()
+    ref_millis = 0
 
     def read(self):
         line = self.ser.readline()
         try:
             parts = line.decode("utf-8").replace('\n', '').replace('\r', '').split(";")
-            mType = parts[0]
+            m_type = parts[0]
 
-            if (mType == 'NOP'):
+            if (m_type == 'NOP'):
                 return Measurement('NOP', None, None)
             elif (len(parts) == 0):
                 return Measurement('NIL', None, None)
 
-            print(line)
-
             value = float(parts[1])
-            measurementMillis = float(parts[2])
-            timestamp = self.__getMeasurementTime(measurementMillis)
-            return Measurement(mType, value, timestamp)
+            measurement_millis = float(parts[2])
+            timestamp = self.__get_measurement_time(measurement_millis)
+            return Measurement(m_type, value, timestamp)
         except: 
             return Measurement('NIL', None, None)
 
-    def __getMeasurementTime(self, relMillis):
-        if (self.refMillis == 0):
-            self.refMillis = relMillis
-            self.refTimestamp = datetime.datetime.now()
+    def __get_measurement_time(self, rel_millis):
+        if (self.ref_millis == 0):
+            self.ref_millis = rel_millis
+            self.ref_timestamp = datetime.datetime.now()
 
-        relTime = relMillis - self.refMillis
-        timestamp = self.refTimestamp + datetime.timedelta(milliseconds=relTime)
+        rel_time = rel_millis - self.ref_millis
+        timestamp = self.ref_timestamp + datetime.timedelta(milliseconds=rel_time)
         return timestamp
