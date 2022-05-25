@@ -6,6 +6,7 @@ import json
 class DataRepository:
     db = TinyDB("nvision.json").table('measurements')
     sent = Query()
+    analysis_data = Query()
     splitter = Splitter()
     measurements = [None for _ in range(5004)]
     counter = 0
@@ -21,7 +22,10 @@ class DataRepository:
             self.measurements = [None for _ in range(5004)]
 
     def get_data(self):
-        records = self.db.all()   
+        not_ecg_records = self.db.search(self.analysis_data.type != 'ECG')
+        all_records = self.db.all()
+        ecg_records = all_records[-5001:-1]
+        records = not_ecg_records + ecg_records
         measurements = self.__records_to_measurements(records)
         return self.splitter.split_measurements(measurements)
 
@@ -29,9 +33,8 @@ class DataRepository:
         records = self.db.search(self.sent.sent == 0)
         return self.__records_to_measurements(records)
 
-    def update_sent_data(self, measurements):
-        for measurement in measurements:    
-            self.db.update({"sent": 1}, self.sent.timestamp == measurement.timestamp)
+    def update_sent_data(self):
+        self.db.update({"sent": 1}, self.sent.sent == 0)  
 
     def __records_to_measurements(self, records):
         measurements = []

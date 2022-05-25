@@ -37,7 +37,7 @@ class AnomalyDetector:
         if (gsr_anomaly == True):
             anomalies.append('GSR')
 
-        ecg_frequency = 50
+        ecg_frequency = 200
         ecg_anomaly = self.__ecg_processor.detect_anomalies(ecg_m, ecg_frequency)
         if (ecg_anomaly == True):
             anomalies.append('ECG')
@@ -66,7 +66,7 @@ class AnomalyDetector:
         clustersCnt = self.__determine_clusters_count(measurements)
         
         # Specify the data and the number of clusters to kmeans()
-        centroids, avg_distance = kmeans(values_raw, clustersCnt)
+        centroids, _ = kmeans(values_raw, clustersCnt)
 
         # Get the groups (clusters) and distances
         groups, cdist = vq(values_raw, centroids)
@@ -77,21 +77,22 @@ class AnomalyDetector:
             return True 
         
         # Check if prediction is placed far away from the centroid of the cluster it belongs to 
-        is_far_from_centroid = self.__is_far_from_centroid(cdist, pred_cnt, avg_distance)
+        is_far_from_centroid = self.__is_far_from_centroid(cdist, pred_cnt)
         return is_far_from_centroid
 
     def __is_isolated_cluster(self, groups, cnt):
         pred_groups = groups[-cnt:]
         (histo, _) = np.histogram(groups, bins=np.arange(len(groups) + 1))
         for pred_group in pred_groups:
-            if (histo[pred_group] < 5):
+            if (histo[pred_group] == 1):
                 return True
         return False
 
-    def __is_far_from_centroid(self, distances, cnt, avg_distance):
-        pred_distances = distances[-cnt:]
+    def __is_far_from_centroid(self, distances, cnt):
+        pred_distances = distances[-cnt:] 
+        real_distances = distances[0:-cnt-1] 
         for pred_distance in pred_distances:
-            if (pred_distance >= 2 * avg_distance):
+            if (pred_distance > max(real_distances)):
                 return True
         return False        
 

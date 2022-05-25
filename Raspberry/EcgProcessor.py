@@ -24,16 +24,18 @@ class EcgProcessor:
         return hrv_anomaly
 
     def __get_segments_indices(self, values, frequency):
+        # clean the ecg 
+        clean_ecg = nk.ecg_clean(values, sampling_rate=frequency)
         # find R peaks
-        _, rpeaks = nk.ecg_peaks(values, sampling_rate=frequency)
+        _, rpeaks = nk.ecg_peaks(clean_ecg, sampling_rate=frequency)
         # separate P, Q, S, T segments
-        _, waves_peak = nk.ecg_delineate(values, rpeaks, sampling_rate=frequency, method="peak")
+        _, waves_peak = nk.ecg_delineate(clean_ecg, rpeaks, sampling_rate=frequency, method="peak")
 
         return (rpeaks['ECG_R_Peaks'], waves_peak['ECG_P_Peaks'], waves_peak['ECG_Q_Peaks'], 
                                        waves_peak['ECG_S_Peaks'], waves_peak['ECG_T_Peaks'])
 
     def __check_pr_complex(self, measurements, p_peaks, r_peaks):
-        return self.__check_time_length(measurements, p_peaks, r_peaks, 110, 230)
+        return self.__check_time_length(measurements, p_peaks, r_peaks, 100, 240)
 
     def __check_qrs_complex(self, measurements, q_peaks, s_peaks):
         return self.__check_time_length(measurements, q_peaks, s_peaks, 70, 120)
@@ -61,7 +63,7 @@ class EcgProcessor:
         time_1 = datetime.strptime(first_1.timestamp, self.__date_format)
         time_2 = datetime.strptime(first_2.timestamp, self.__date_format)
         offset = 0
-        if (time_2 > time_1):
+        if (time_2 < time_1):
             offset = 1
 
         # check the difference in time between consecutive seg1 and seg2

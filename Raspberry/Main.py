@@ -14,10 +14,14 @@ ecg_processor = EcgProcessor()
 detector = AnomalyDetector(ecg_processor)
 sender = DataSender()
 alerter = AnomalyAlerter()
+booted = True
 
 while True:
     measurement = reader.read()
     if (measurement.type == 'NOP'):
+        if (booted == True):
+            booted = False
+            continue
         repository.store_data()
         measurements = repository.get_data()
         predictions = predictor.predict(measurements)
@@ -27,7 +31,7 @@ while True:
     elif (measurement.type == 'NIL'):
         unsent_measurements = repository.get_unsent_data()
         sender.send_not_sent_data(unsent_measurements, serial_number)
-        repository.update_sent_data(unsent_measurements)
+        repository.update_sent_data()
     else:
         repository.keep_data(measurement)
         

@@ -7,10 +7,9 @@ class DataSender:
     def send_not_sent_data(self, unsent_data, serial_number):
         url = self.__url
         queue = 'measurements'
-
-        for unsent_record in unsent_data:
-            message = json.dumps({ 'type': unsent_record.type, 'value': unsent_record.value, 'timestamp': unsent_record.timestamp, 'deviceSerial': serial_number}) 
-            self.__send(url, queue, message)
+        documents = self.__recordsToDocuments(unsent_data)
+        message = json.dumps({ 'records': documents, 'deviceSerial': serial_number}) 
+        self.__send(url, queue, message)       
 
     def __send(self, url, queue, message):
         params = pika.URLParameters(url)
@@ -26,3 +25,9 @@ class DataSender:
             print('Error RabbitMQ: '+ str(e)) 
 
         connection.close()
+
+    def __recordsToDocuments(self, records):
+        documents = [None for _ in range(len(records))]
+        for (i, m) in enumerate(records):
+            documents[i] = { 'type': m.type, 'value': m.value, 'timestamp': m.timestamp}
+        return documents

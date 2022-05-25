@@ -4,7 +4,7 @@ import requests
 
 class AnomalyAlerter: 
     def alertAnomalies(self, anomalies, deviceSerialNumber):
-        url = 'https://192.168.241.247:5001/api/device'
+        url = 'https://192.168.151.247:5001/api/device'
 
         headers={
             'Content-type':'application/json', 
