@@ -1,10 +1,12 @@
 from datetime import datetime
 from email.utils import format_datetime
 import requests
+import urllib3
 
 class AnomalyAlerter: 
     def alertAnomalies(self, anomalies, deviceSerialNumber):
-        url = 'https://192.168.151.247:5001/api/device'
+        url = 'https://192.168.220.247:5001/api/device'
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         headers={
             'Content-type':'application/json', 
