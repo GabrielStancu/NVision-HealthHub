@@ -4,14 +4,16 @@ from DataSender import DataSender
 from AnomalyDetector import AnomalyDetector
 from AnomalyAlerter import AnomalyAlerter
 from Predictor import Predictor
+from DiagnosisGenerator import DiagnosisGenerator
 from EcgProcessor import EcgProcessor
 
 serial_number = "2a994998-7c5a-4062-84cd-a20acdaec72f"
 reader = DataReader()
 predictor = Predictor()
 repository = DataRepository()
+diagnosis_generator = DiagnosisGenerator()
 ecg_processor = EcgProcessor()
-detector = AnomalyDetector(ecg_processor)
+detector = AnomalyDetector(diagnosis_generator, ecg_processor)
 sender = DataSender()
 alerter = AnomalyAlerter()
 booted = True
