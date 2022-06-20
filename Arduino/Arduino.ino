@@ -110,8 +110,7 @@ void sendData() {
 float measureTemperature() {
   float tempVal = analogRead(TEMPERATURE);
   timestamp = millis();
-  float celsius = (tempVal/1024.0)*250; 
-
+  float celsius = (tempVal/1024.0)*265; 
   return celsius;
 }
 

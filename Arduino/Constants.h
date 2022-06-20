@@ -24,7 +24,7 @@ const float maxValidPulse = 150;
 const float minValidOxygen = 85;
 const float maxValidOxygen = 99;
 const float minValidGsr = 1;
-const float maxValidGsr = 30;
+const float maxValidGsr = 1023;
 
 const char separator = ';';
 
@@ -35,7 +35,7 @@ const char oxygenType[4] = "OXY";
 const char gsrType[4] = "GSR";
 
 const int reqTmp = 1;
-const int reqEcg = 5000;
+const int reqEcg = 1000; //5000
 const int reqHb = 1;
 const int reqOxygen = 1;
 const int reqGsr = 1;
