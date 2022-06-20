@@ -58,7 +58,7 @@ class EcgProcessor:
     def __check_qt_complex(self, measurements, q_peaks, t_peaks):
         min_valid = 400
         max_valid = 470
-        interval = self.__check_time_length(measurements, q_peaks, t_peaks, 400, 470)
+        interval = self.__check_time_length(measurements, q_peaks, t_peaks, min_valid, max_valid)
         if (interval < min_valid):
             return "ECG_QT_S" # short qt syndrome
         if (interval > max_valid):
