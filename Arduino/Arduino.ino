@@ -16,6 +16,7 @@ int gsrCnt = 0;
 bool canGoNextState = false;
 bool sentNoOp = false;
 bool bootRun = true;
+bool resetCycle = false;
 static volatile bool canSendData = false;
 unsigned long timestamp;
 
@@ -36,6 +37,7 @@ void setup() {
   pinMode(BPM_LED, OUTPUT);
   pinMode(OXY_LED, OUTPUT);
   pinMode(GSR_LED, OUTPUT);
+  
   pox.begin();
   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
   timestamp = millis();
@@ -59,15 +61,16 @@ void takeMeasurement()
 }
 
 void opBtnChange() {
-  if(digitalRead(OP_BTN) == HIGH){
+  if(digitalRead(OP_BTN) == LOW){
     pushingOpBtn = true;
-    if (sendMode == 0) {
+    if (sendMode == 0 && !resetCycle) {
       sendMode = 1;
       pushingOpBtn = false;
       sentNoOp = false;
     }  
   } else {
     pushingOpBtn = false;
+    resetCycle = false;
   }
 }
 
@@ -99,6 +102,9 @@ void sendData() {
     if (canGoNextState) {
       if (sendMode > 0) {
         sendMode = (sendMode + 1) % 6;
+      }
+      if (sendMode == 0) {
+        resetCycle = true;
       }
       pushingOpBtn = false;
       resetState();
@@ -206,31 +212,31 @@ void resetState() {
 }
 
 void lightOpLeds() {
-  digitalWrite(NO_OP_LED, LOW);
-  digitalWrite(TEMP_LED, LOW);
-  digitalWrite(ECG_LED, LOW);
-  digitalWrite(BPM_LED, LOW);
-  digitalWrite(OXY_LED, LOW);
-  digitalWrite(GSR_LED, LOW);
+  digitalWrite(NO_OP_LED, HIGH);
+  digitalWrite(TEMP_LED, HIGH);
+  digitalWrite(ECG_LED, HIGH);
+  digitalWrite(BPM_LED, HIGH);
+  digitalWrite(OXY_LED, HIGH);
+  digitalWrite(GSR_LED, HIGH);
 
   switch(sendMode) {
     case 0:
-      digitalWrite(NO_OP_LED, HIGH);
+      digitalWrite(NO_OP_LED, LOW);
       break;
     case 1: 
-      digitalWrite(TEMP_LED, HIGH);
+      digitalWrite(TEMP_LED, LOW);
       break;
     case 2: 
-      digitalWrite(ECG_LED, HIGH);
+      digitalWrite(ECG_LED, LOW);
       break;
     case 3: 
-      digitalWrite(BPM_LED, HIGH);
+      digitalWrite(BPM_LED, LOW);
       break;
     case 4: 
-      digitalWrite(OXY_LED, HIGH);
+      digitalWrite(OXY_LED, LOW);
       break;
     case 5: 
-      digitalWrite(GSR_LED, HIGH);
+      digitalWrite(GSR_LED, LOW);
       break;
     default: 
       sendMode = 0;

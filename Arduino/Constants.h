@@ -13,18 +13,16 @@
 #define OXY_LED 4
 #define GSR_LED 3
 
-#define TIMER_COUNT_UP 250
-
-const float minValidTemp = 32;
-const float maxValidTemp = 40;
+const float minValidTemp = 35;
+const float maxValidTemp = 37;
 const float minValidEcg = 1;
 const float maxValidEcg = 1000;
 const float minValidPulse = 60;
-const float maxValidPulse = 150;
+const float maxValidPulse = 90;
 const float minValidOxygen = 85;
 const float maxValidOxygen = 99;
-const float minValidGsr = 1;
-const float maxValidGsr = 1023;
+const float minValidGsr = 50;
+const float maxValidGsr = 150;
 
 const char separator = ';';
 
@@ -35,9 +33,9 @@ const char oxygenType[4] = "OXY";
 const char gsrType[4] = "GSR";
 
 const int reqTmp = 1;
-const int reqEcg = 1000; //5000
+const int reqEcg = 5000;
 const int reqHb = 1;
 const int reqOxygen = 1;
 const int reqGsr = 1;
 
-const int averageCounts = 50;
+const int averageCounts = 1000;
